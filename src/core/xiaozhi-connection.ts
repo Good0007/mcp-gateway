@@ -1,21 +1,38 @@
 /**
  * Xiaozhi Connection
- * Manages WebSocket connection to xiaozhi endpoint
+ * Manages WebSocket connection to xiaozhi endpoint using MCP standard protocol
  */
 
 import WebSocket from 'ws';
 import { EventEmitter } from 'events';
 import {
-  XiaozhiMessage,
-  XiaozhiMessageType,
-  XiaozhiListToolsRequest,
-  XiaozhiCallToolRequest,
+  JSONRPCMessage,
+  JSONRPCRequest,
+  JSONRPCResponse,
+  JSONRPCError,
+  JSONRPCNotification,
+  RequestId,
+  ErrorCode,
+  InitializeParams,
+  InitializeResult,
+  ServerCapabilities,
+  ListToolsResult,
+  CallToolParams,
+  CallToolResult,
+  PingResult,
+  isRequest,
+  isInitializeRequest,
+  isPingRequest,
   isListToolsRequest,
   isCallToolRequest,
-} from '../types/xiaozhi.js';
+  isInitializedNotification,
+} from '../types/mcp-protocol.js';
 import { ToolAggregator } from './tool-aggregator.js';
 import { ConnectionError } from '../types/errors.js';
 import { logger } from '../utils/logger.js';
+
+// Version constant
+const MCP_AGENT_VERSION = '0.1.0';
 
 /**
  * Connection events
@@ -37,13 +54,25 @@ export interface ConnectionConfig {
 }
 
 /**
- * Xiaozhi Connection Manager
+ * Initialization state
+ */
+enum InitState {
+  NOT_INITIALIZED = 'not_initialized',
+  INITIALIZING = 'initializing',
+  INITIALIZED = 'initialized',
+}
+
+/**
+ * Xiaozhi Connection Manager (MCP Standard Protocol)
  */
 export class XiaozhiConnection extends EventEmitter {
   private ws: WebSocket | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private reconnectAttempts = 0;
   private isManualClose = false;
+  private pingTimer: NodeJS.Timeout | null = null;
+  private initState: InitState = InitState.NOT_INITIALIZED;
+  private clientInfo?: { name: string; version: string };
 
   constructor(
     private readonly config: ConnectionConfig,
@@ -102,10 +131,15 @@ export class XiaozhiConnection extends EventEmitter {
   disconnect(): Promise<void> {
     this.isManualClose = true;
 
-    // Clear reconnect timer
+    // Clear timers
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
+    }
+
+    if (this.pingTimer) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = null;
     }
 
     if (this.ws) {
@@ -118,24 +152,55 @@ export class XiaozhiConnection extends EventEmitter {
   }
 
   /**
-   * Send a message to xiaozhi
+   * Reconnect to xiaozhi (disconnect and connect again)
+   * Useful for refreshing the connection and triggering a new initialize handshake
    */
-  private send(message: XiaozhiMessage): void {
+  async reconnect(): Promise<void> {
+    logger.info('Reconnecting to xiaozhi to refresh tool list');
+    
+    // Reset initialization state
+    this.initState = InitState.NOT_INITIALIZED;
+    this.reconnectAttempts = 0;
+    
+    await this.disconnect();
+    
+    // Wait a bit for graceful disconnect
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    await this.connect();
+    
+    logger.info('Reconnection complete, xiaozhi will re-fetch tools');
+  }
+
+  /**
+   * Send a JSON-RPC message to xiaozhi
+   */
+  private send(message: JSONRPCMessage): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       throw new ConnectionError('WebSocket not connected');
     }
 
     const json = JSON.stringify(message);
+    logger.info('Sending MCP message', { 
+      method: 'method' in message ? message.method : 'response',
+      id: 'id' in message ? message.id : undefined,
+      raw: json 
+    });
     this.ws.send(json);
-    logger.debug('Sent message to xiaozhi', { type: message.type });
   }
 
   /**
    * Handle connection open
    */
   private handleOpen(): void {
-    logger.info('Connected to xiaozhi');
-    this.reconnectAttempts = 0;
+    logger.info('WebSocket connected, waiting for initialize request from xiaozhi');
+    
+    // Reset initialization state
+    this.initState = InitState.NOT_INITIALIZED;
+    
+    // Start heartbeat
+    this.startHeartbeat();
+    
     this.emit(ConnectionEvent.CONNECTED);
   }
 
@@ -156,55 +221,160 @@ export class XiaozhiConnection extends EventEmitter {
         dataStr = String(data);
       }
 
-      const message: XiaozhiMessage = JSON.parse(dataStr) as XiaozhiMessage;
-      logger.debug('Received message from xiaozhi', { type: message.type });
+      const message: JSONRPCMessage = JSON.parse(dataStr) as JSONRPCMessage;
+      logger.info('Received MCP message', { 
+        method: 'method' in message ? message.method : 'response',
+        id: 'id' in message ? message.id : undefined,
+        raw: dataStr 
+      });
 
       this.emit(ConnectionEvent.MESSAGE, message);
 
-      // Handle request messages
-      if (isListToolsRequest(message)) {
-        await this.handleListTools(message);
-      } else if (isCallToolRequest(message)) {
-        await this.handleCallTool(message);
+      // Handle requests
+      if (isRequest(message)) {
+        await this.handleRequest(message);
+      } else if (isInitializedNotification(message)) {
+        await this.handleInitializedNotification();
       }
     } catch (error) {
-      // Convert data to string for logging
-      let dataStr: string;
-      if (typeof data === 'string') {
-        dataStr = data;
-      } else if (Buffer.isBuffer(data)) {
-        dataStr = data.toString('utf-8');
-      } else if (Array.isArray(data)) {
-        dataStr = Buffer.concat(data).toString('utf-8');
-      } else {
-        dataStr = String(data);
-      }
-      logger.error('Failed to handle message', { error, dataStr });
-      this.sendError('INVALID_MESSAGE', 'Failed to parse message', error);
+      logger.error('Failed to handle message', { error });
+      // Send parse error
+      this.sendError(ErrorCode.PARSE_ERROR, 'Failed to parse message', undefined);
     }
+  }
+
+  /**
+   * Route and handle JSON-RPC requests
+   */
+  private async handleRequest(request: JSONRPCRequest): Promise<void> {
+    try {
+      if (isInitializeRequest(request)) {
+        this.handleInitialize(request);
+      } else if (isPingRequest(request)) {
+        this.handlePing(request);
+      } else if (isListToolsRequest(request)) {
+        await this.handleListTools(request);
+      } else if (isCallToolRequest(request)) {
+        await this.handleCallTool(request);
+      } else {
+        // Unknown method
+        this.sendError(
+          ErrorCode.METHOD_NOT_FOUND,
+          `Method not found: ${(request as JSONRPCRequest).method}`,
+          (request as JSONRPCRequest).id
+        );
+      }
+    } catch (error) {
+      logger.error('Failed to handle request', { method: (request).method, error });
+      this.sendError(
+        ErrorCode.INTERNAL_ERROR,
+        error instanceof Error ? error.message : 'Internal error',
+        request.id
+      );
+    }
+  }
+
+  /**
+   * Handle initialize request (MCP standard handshake)
+   */
+  private handleInitialize(request: JSONRPCRequest): void {
+    try {
+      logger.info('Processing initialize request');
+      
+      this.initState = InitState.INITIALIZING;
+      
+      const params = (request.params as unknown) as InitializeParams;
+      this.clientInfo = params.clientInfo;
+      
+      logger.info('Client info', { 
+        clientName: this.clientInfo.name,
+        clientVersion: this.clientInfo.version,
+        protocolVersion: params.protocolVersion
+      });
+
+      // Build server capabilities
+      const capabilities: ServerCapabilities = {
+        tools: {
+          listChanged: true, // Support tools list change notifications
+        },
+      };
+
+      // Build result
+      const result: InitializeResult = {
+        protocolVersion: params.protocolVersion, // Echo back the protocol version
+        capabilities,
+        serverInfo: {
+          name: 'mcp-agent',
+          version: MCP_AGENT_VERSION,
+        },
+        instructions: 'MCP Agent - Aggregates tools from multiple MCP services',
+      };
+
+      // Send response
+      const response: JSONRPCResponse = {
+        jsonrpc: '2.0',
+        id: request.id,
+        result,
+      };
+
+      this.send(response);
+      
+      logger.info('Sent initialize response', { serverInfo: result.serverInfo });
+    } catch (error) {
+      logger.error('Failed to handle initialize', { error });
+      this.sendError(
+        ErrorCode.INTERNAL_ERROR,
+        'Failed to initialize',
+        request.id
+      );
+    }
+  }
+
+  /**
+   * Handle initialized notification
+   */
+  private async handleInitializedNotification(): Promise<void> {
+    logger.info('Received initialized notification, handshake complete');
+    this.initState = InitState.INITIALIZED;
+    
+    // Now we can send tools list
+    await this.notifyToolsUpdated();
   }
 
   /**
    * Handle list tools request
    */
-  private async handleListTools(request: XiaozhiListToolsRequest): Promise<void> {
+  private async handleListTools(request: JSONRPCRequest): Promise<void> {
     try {
+      logger.info('Processing tools/list request', { id: request.id });
+      
       const tools = await this.toolAggregator.getAllTools();
 
       // Remove service-specific fields before sending
       const cleanTools = tools.map(({ serviceId: _serviceId, serviceName: _serviceName, ...tool }) => tool);
 
-      this.send({
-        type: XiaozhiMessageType.TOOLS_LIST_RESULT,
-        id: request.id,
-        tools: cleanTools,
+      logger.info('Responding with tools', { 
+        requestId: request.id,
+        toolCount: cleanTools.length,
+        toolNames: cleanTools.map(t => t.name)
       });
+
+      const result: ListToolsResult = {
+        tools: cleanTools,
+      };
+
+      const response: JSONRPCResponse = {
+        jsonrpc: '2.0',
+        id: request.id,
+        result,
+      };
+
+      this.send(response);
     } catch (error) {
       logger.error('Failed to list tools', { error });
       this.sendError(
-        'TOOL_LIST_FAILED',
+        ErrorCode.INTERNAL_ERROR,
         'Failed to list tools',
-        error,
         request.id
       );
     }
@@ -213,42 +383,123 @@ export class XiaozhiConnection extends EventEmitter {
   /**
    * Handle call tool request
    */
-  private async handleCallTool(request: XiaozhiCallToolRequest): Promise<void> {
+  /**
+   * Map parameter names from xiaozhi to MCP tool expectations
+   * Xiaozhi may use different parameter names than the actual tools expect
+   */
+  private mapToolParameters(toolName: string, args: Record<string, unknown>): Record<string, unknown> {
+    // Parameter mapping table: xiaozhi name -> tool name
+    const parameterMappings: Record<string, Record<string, string>> = {
+      search_files: {
+        keyword: 'pattern',  // xiaozhi sends 'keyword', tool expects 'pattern'
+      },
+      // Add more tool-specific mappings here if needed
+    };
+
+    const mapping = parameterMappings[toolName];
+    if (!mapping) {
+      return args; // No mapping needed for this tool
+    }
+
+    const mappedArgs = { ...args };
+    for (const [xiaozhiName, toolName] of Object.entries(mapping)) {
+      if (xiaozhiName in mappedArgs) {
+        mappedArgs[toolName] = mappedArgs[xiaozhiName];
+        delete mappedArgs[xiaozhiName];
+      }
+    }
+
+    return mappedArgs;
+  }
+
+  private async handleCallTool(request: JSONRPCRequest): Promise<void> {
     try {
+      const params = (request.params as unknown) as CallToolParams;
+      logger.info('Processing tools/call request', { 
+        id: request.id,
+        tool: params.name,
+        originalArgs: params.arguments 
+      });
+      
+      // Map parameter names from xiaozhi to tool expectations
+      const mappedArgs = this.mapToolParameters(params.name, params.arguments || {});
+      
+      logger.info('Mapped tool parameters', {
+        tool: params.name,
+        mappedArgs
+      });
+      
       const result = await this.toolAggregator.callTool({
-        name: request.name,
-        arguments: request.arguments,
+        name: params.name,
+        arguments: mappedArgs,
       });
 
-      this.send({
-        type: XiaozhiMessageType.TOOLS_CALL_RESULT,
-        id: request.id,
+      const callResult: CallToolResult = {
         content: result.content,
         isError: result.isError,
+      };
+
+      const response: JSONRPCResponse = {
+        jsonrpc: '2.0',
+        id: request.id,
+        result: callResult,
+      };
+
+      this.send(response);
+      
+      logger.info('Sent tool call result', { 
+        id: request.id,
+        isError: result.isError 
       });
     } catch (error) {
-      logger.error('Failed to call tool', { toolName: request.name, error });
+      logger.error('Failed to call tool', { error });
       this.sendError(
-        'TOOL_CALL_FAILED',
-        error instanceof Error ? error.message : String(error),
-        error,
+        ErrorCode.INTERNAL_ERROR,
+        error instanceof Error ? error.message : 'Failed to call tool',
         request.id
       );
     }
   }
 
   /**
-   * Send error message to xiaozhi
+   * Handle ping request from xiaozhi server
    */
-  private sendError(code: string, message: string, details?: unknown, id?: string): void {
+  private handlePing(request: JSONRPCRequest): void {
     try {
-      this.send({
-        type: XiaozhiMessageType.ERROR,
-        id,
-        code,
-        message,
-        details,
-      });
+      logger.debug('Received ping request', { id: request.id });
+      
+      const result: PingResult = {};
+
+      const response: JSONRPCResponse = {
+        jsonrpc: '2.0',
+        id: request.id,
+        result,
+      };
+
+      this.send(response);
+      logger.debug('Sent ping response', { id: request.id });
+    } catch (error) {
+      logger.error('Failed to handle ping', { error });
+    }
+  }
+
+  /**
+   * Send JSON-RPC error response
+   */
+  private sendError(code: number, message: string, id?: RequestId, data?: unknown): void {
+    try {
+      const error: JSONRPCError = {
+        jsonrpc: '2.0',
+        id: id || null as unknown as RequestId,
+        error: {
+          code,
+          message,
+          data,
+        },
+      };
+
+      this.send(error);
+      logger.debug('Sent error response', { code, message, id });
     } catch (error) {
       logger.error('Failed to send error message', { error });
     }
@@ -267,6 +518,13 @@ export class XiaozhiConnection extends EventEmitter {
    */
   private handleClose(): void {
     logger.info('Connection closed');
+    
+    // Stop heartbeat
+    if (this.pingTimer) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = null;
+    }
+    
     this.emit(ConnectionEvent.DISCONNECTED);
 
     // Attempt reconnect if not manually closed
@@ -306,17 +564,77 @@ export class XiaozhiConnection extends EventEmitter {
   }
 
   /**
-   * Notify xiaozhi that tools have been updated
+   * Notify xiaozhi that tools have been updated (MCP notification)
    */
-  notifyToolsUpdated(): void {
+  async notifyToolsUpdated(): Promise<void> {
     try {
-      this.send({
-        type: XiaozhiMessageType.TOOLS_UPDATED,
+      if (!this.isConnected() || this.initState !== InitState.INITIALIZED) {
+        logger.debug('Not ready to send tools update notification', { 
+          connected: this.isConnected(),
+          initState: this.initState 
+        });
+        return;
+      }
+      
+      // Get current tools
+      const tools = await this.toolAggregator.getAllTools();
+      logger.info('Notifying xiaozhi of tools update', { 
+        toolCount: tools.length, 
+        toolNames: tools.map(t => t.name) 
       });
-      logger.info('Notified xiaozhi of tools update');
+      
+      // Send MCP notification
+      const notification: JSONRPCNotification = {
+        jsonrpc: '2.0',
+        method: 'notifications/tools/list_changed',
+        params: {},
+      };
+      
+      this.send(notification);
+      logger.info('Sent tools/list_changed notification');
     } catch (error) {
       logger.error('Failed to notify tools update', { error });
     }
+  }
+
+  /**
+   * Start heartbeat (send ping requests periodically)
+   */
+  private startHeartbeat(): void {
+    // Clear existing timer
+    if (this.pingTimer) {
+      clearInterval(this.pingTimer);
+    }
+
+    let pingCounter = 0;
+
+    // Send MCP JSON-RPC ping every 50 seconds (as per MCP standard)
+    this.pingTimer = setInterval(() => {
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        logger.warn('WebSocket not open, skipping heartbeat');
+        return;
+      }
+
+      try {
+        pingCounter++;
+        const pingId = `ping_${Date.now()}_${pingCounter}`;
+        
+        // Send MCP standard JSON-RPC ping request
+        const pingRequest: JSONRPCRequest = {
+          jsonrpc: '2.0',
+          id: pingId,
+          method: 'ping',
+          params: {},
+        };
+        
+        this.send(pingRequest);
+        logger.debug('Sent MCP heartbeat ping', { id: pingId });
+      } catch (error) {
+        logger.error('Failed to send heartbeat', { error });
+      }
+    }, 50000); // 50 seconds (MCP standard interval)
+    
+    logger.info('Heartbeat started (50s MCP JSON-RPC ping)');
   }
 
   /**

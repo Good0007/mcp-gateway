@@ -34,6 +34,7 @@ export interface StdioServiceConfig extends BaseServiceConfig {
   command: string;
   args?: string[];
   env?: Record<string, string>;
+  cwd?: string;  // Working directory for the service process
 }
 
 /**
@@ -78,7 +79,7 @@ export type ServiceConfig =
  */
 export interface MCPAgentConfig {
   xiaozhi: {
-    endpoint: string;
+    endpoint?: string;  // Optional - can come from env var
     reconnectInterval?: number;
     maxReconnectAttempts?: number;
   };
@@ -143,7 +144,7 @@ export const serviceConfigSchema = z.discriminatedUnion('type', [
 // Main config schema
 export const mcpAgentConfigSchema = z.object({
   xiaozhi: z.object({
-    endpoint: z.string().url(),
+    endpoint: z.string().url().optional(),  // Optional in file, can be from env
     reconnectInterval: z.number().positive().default(5000),
     maxReconnectAttempts: z.number().int().positive().default(10),
   }),

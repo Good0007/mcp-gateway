@@ -63,6 +63,20 @@ export class ConfigLoader extends EventEmitter {
         );
       }
 
+      // Apply environment variable overrides (priority: ENV > config)
+      if (process.env.MCP_ENDPOINT) {
+        logger.info('Using MCP_ENDPOINT from environment variable');
+        this.config.xiaozhi.endpoint = process.env.MCP_ENDPOINT;
+      }
+
+      // Validate endpoint is provided
+      if (!this.config.xiaozhi.endpoint) {
+        throw new ConfigurationError(
+          'xiaozhi.endpoint is required (provide in config file or MCP_ENDPOINT env var)',
+          { path: this.configPath }
+        );
+      }
+
       logger.info('Configuration loaded successfully', {
         services: this.config.services.length,
         xiaozhi: this.config.xiaozhi.endpoint,

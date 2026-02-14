@@ -1,0 +1,125 @@
+{
+  "xiaozhi": {
+    "endpoint": "wss://api.xiaozhi.me/mcp/?token=YOUR_TOKEN_HERE",
+    "reconnectInterval": 5000,
+    "maxReconnectAttempts": 10
+  },
+  "services": [
+    {
+      "id": "calculator",
+      "type": "sse",
+      "name": "Calculator Service",
+      "description": "Basic arithmetic operations - add, subtract, multiply, divide",
+      "enabled": true,
+      "url": "http://localhost:8931/sse"
+    },
+    {
+      "id": "weather-npx",
+      "type": "stdio",
+      "name": "Weather Service (NPX)",
+      "description": "Weather information via npx",
+      "enabled": true,
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-weather"],
+      "env": {
+        "WEATHER_API_KEY": "your-api-key-here"
+      }
+    },
+    {
+      "id": "filesystem-npx",
+      "type": "stdio",
+      "name": "Filesystem Service (NPX)",
+      "description": "File system operations via npx",
+      "enabled": true,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/kangkang/Documents"
+      ]
+    },
+    {
+      "id": "memory-local",
+      "type": "stdio",
+      "name": "Memory Service (Local)",
+      "description": "In-memory KV store",
+      "enabled": true,
+      "command": "node",
+      "args": ["/path/to/your/local-mcp-server/dist/index.js"]
+    },
+    {
+      "id": "github-npx",
+      "type": "stdio",
+      "name": "GitHub Service (NPX)",
+      "description": "GitHub API operations",
+      "enabled": false,
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "your-github-token"
+      }
+    },
+    {
+      "id": "postgres-npx",
+      "type": "stdio",
+      "name": "PostgreSQL Service (NPX)",
+      "description": "Database operations",
+      "enabled": false,
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "env": {
+        "POSTGRES_CONNECTION_STRING": "postgresql://user:pass@localhost:5432/db"
+      }
+    },
+    {
+      "id": "puppeteer-npx",
+      "type": "stdio",
+      "name": "Puppeteer Service (NPX)",
+      "description": "Browser automation",
+      "enabled": false,
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-puppeteer"]
+    },
+    {
+      "id": "slack-npx",
+      "type": "stdio",
+      "name": "Slack Service (NPX)",
+      "description": "Slack API operations",
+      "enabled": false,
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-slack"],
+      "env": {
+        "SLACK_BOT_TOKEN": "xoxb-your-token",
+        "SLACK_TEAM_ID": "T01234567"
+      }
+    },
+    {
+      "id": "api-rest",
+      "type": "http",
+      "name": "REST API Service",
+      "description": "HTTP REST API backend",
+      "enabled": false,
+      "baseUrl": "http://localhost:4000/mcp",
+      "timeout": 30000,
+      "headers": {
+        "Authorization": "Bearer your-api-token"
+      }
+    },
+    {
+      "id": "custom-sse",
+      "type": "sse",
+      "name": "Custom SSE Service",
+      "description": "Custom server with SSE transport",
+      "enabled": false,
+      "url": "http://localhost:3000/sse",
+      "headers": {
+        "X-API-Key": "your-custom-key"
+      }
+    }
+  ],
+  "logging": {
+    "level": "info",
+    "file": "./logs/mcp-agent.log"
+  },
+  "resultLimit": 1024
+}

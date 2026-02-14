@@ -50,13 +50,15 @@ export class MCPAgent extends EventEmitter {
   private setupEventHandlers(): void {
     // Registry events
     this.registry.on(RegistryEvent.SERVICE_STARTED, (serviceId: string) => {
-      logger.info('Service started, notifying xiaozhi', { serviceId });
-      this.connection?.notifyToolsUpdated();
+      logger.info('Service started', { serviceId });
+      // Note: Tools change notifications handled by config reload reconnection
+      // For standard MCP support: void this.connection?.notifyToolsUpdated();
     });
 
     this.registry.on(RegistryEvent.SERVICE_STOPPED, (serviceId: string) => {
-      logger.info('Service stopped, notifying xiaozhi', { serviceId });
-      this.connection?.notifyToolsUpdated();
+      logger.info('Service stopped', { serviceId });
+      // Note: Tools change notifications handled by config reload reconnection
+      // For standard MCP support: void this.connection?.notifyToolsUpdated();
     });
 
     this.registry.on(RegistryEvent.SERVICE_ERROR, (serviceId: string, error: Error) => {
@@ -114,7 +116,7 @@ export class MCPAgent extends EventEmitter {
       // Create connection to xiaozhi
       this.connection = new XiaozhiConnection(
         {
-          endpoint: config.xiaozhi.endpoint,
+          endpoint: config.xiaozhi.endpoint!,  // Already validated in ConfigLoader
           reconnectInterval: config.xiaozhi.reconnectInterval,
           maxReconnectAttempts: config.xiaozhi.maxReconnectAttempts,
         },
@@ -240,8 +242,16 @@ export class MCPAgent extends EventEmitter {
       }
     }
 
-    // Notify xiaozhi of tools change
-    this.connection?.notifyToolsUpdated();
+    // Reconnect to xiaozhi to refresh tool list
+    // Note: xiaozhi doesn't support the standard MCP tools/list_changed notification,
+    // so we need to reconnect to trigger a fresh initialize + tools/list handshake
+    if (this.connection?.isConnected()) {
+      logger.info('Configuration changed, reconnecting to xiaozhi to refresh tools');
+      await this.connection.reconnect();
+    }
+    
+    // For future use when xiaozhi supports standard MCP notifications:
+    // void this.connection?.notifyToolsUpdated();
   }
 
   /**

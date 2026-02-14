@@ -51,11 +51,12 @@ export class StdioServiceAdapter extends BaseServiceAdapter {
           )
         : undefined;
 
-      // Create transport
+      // Create transport with optional working directory
       this.transport = new StdioClientTransport({
         command: config.command,
         args: config.args || [],
         env,
+        cwd: config.cwd,  // Set working directory for the service process
       });
 
       // Create client

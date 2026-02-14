@@ -12,11 +12,13 @@ export enum XiaozhiMessageType {
   // Client to Server
   TOOLS_LIST = 'tools/list',
   TOOLS_CALL = 'tools/call',
+  PING = 'ping',
   
   // Server to Client
   TOOLS_LIST_RESULT = 'tools/list/result',
   TOOLS_CALL_RESULT = 'tools/call/result',
   TOOLS_UPDATED = 'tools/updated',
+  PING_RESULT = 'ping/result',
   ERROR = 'error',
 }
 
@@ -72,6 +74,22 @@ export interface XiaozhiToolsUpdatedNotification extends XiaozhiBaseMessage {
 }
 
 /**
+ * Request: Ping (heartbeat)
+ */
+export interface XiaozhiPingRequest extends XiaozhiBaseMessage {
+  type: XiaozhiMessageType.PING;
+  params?: Record<string, unknown>;
+}
+
+/**
+ * Response: Ping result
+ */
+export interface XiaozhiPingResult extends XiaozhiBaseMessage {
+  type: XiaozhiMessageType.PING_RESULT;
+  result: Record<string, unknown>;
+}
+
+/**
  * Error message
  */
 export interface XiaozhiErrorMessage extends XiaozhiBaseMessage {
@@ -90,6 +108,8 @@ export type XiaozhiMessage =
   | XiaozhiCallToolRequest
   | XiaozhiCallToolResult
   | XiaozhiToolsUpdatedNotification
+  | XiaozhiPingRequest
+  | XiaozhiPingResult
   | XiaozhiErrorMessage;
 
 /**
@@ -101,6 +121,10 @@ export function isListToolsRequest(msg: XiaozhiMessage): msg is XiaozhiListTools
 
 export function isCallToolRequest(msg: XiaozhiMessage): msg is XiaozhiCallToolRequest {
   return msg.type === XiaozhiMessageType.TOOLS_CALL;
+}
+
+export function isPingRequest(msg: XiaozhiMessage): msg is XiaozhiPingRequest {
+  return msg.type === XiaozhiMessageType.PING;
 }
 
 export function isErrorMessage(msg: XiaozhiMessage): msg is XiaozhiErrorMessage {
