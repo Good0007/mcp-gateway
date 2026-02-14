@@ -1,0 +1,54 @@
+{
+  "xiaozhi": {
+    "endpoint": "ws://localhost:8080/mcp",
+    "reconnectInterval": 5000,
+    "maxReconnectAttempts": 10
+  },
+  "services": [
+    {
+      "id": "calculator",
+      "type": "stdio",
+      "name": "Calculator Service",
+      "description": "Basic arithmetic operations",
+      "enabled": true,
+      "command": "node",
+      "args": ["path/to/mcp-calculator/dist/index.js"]
+    },
+    {
+      "id": "filesystem",
+      "type": "embedded",
+      "name": "Filesystem Service",
+      "description": "File system operations",
+      "enabled": true,
+      "modulePath": "./services/filesystem.js",
+      "options": {
+        "rootPath": "/tmp"
+      }
+    },
+    {
+      "id": "weather",
+      "type": "sse",
+      "name": "Weather Service",
+      "description": "Weather information",
+      "enabled": false,
+      "url": "http://localhost:3000/sse",
+      "headers": {
+        "Authorization": "Bearer your-token-here"
+      }
+    },
+    {
+      "id": "api",
+      "type": "http",
+      "name": "REST API Service",
+      "description": "HTTP REST API backend",
+      "enabled": false,
+      "baseUrl": "http://localhost:4000/mcp",
+      "timeout": 30000
+    }
+  ],
+  "logging": {
+    "level": "info",
+    "file": "./logs/mcp-agent.log"
+  },
+  "resultLimit": 1024
+}
