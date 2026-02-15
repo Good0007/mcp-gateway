@@ -5,22 +5,32 @@
  * Command-line interface for running the MCP agent
  */
 
-import { MCPAgent } from './core/mcp-agent.js';
-import { logger } from './utils/logger.js';
+import { MCPAgent, logger } from '@mcp-agent/core';
 import { config } from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Load environment variables
 config();
+
+// Resolve project root (monorepo root = cli/../../)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..');
 
 /**
  * Parse command line arguments
  */
 function parseArgs() {
   const args = process.argv.slice(2);
-  const configPath =
+  const rawPath =
     args.find((arg) => arg.startsWith('--config='))?.split('=')[1] ||
     process.env.MCP_AGENT_CONFIG ||
-    './config/agent-config.json';
+    'config/agent-config.json';
+
+  // If not absolute, resolve relative to project root
+  const configPath = path.isAbsolute(rawPath)
+    ? rawPath
+    : path.resolve(PROJECT_ROOT, rawPath);
 
   return { configPath };
 }

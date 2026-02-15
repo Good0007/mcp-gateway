@@ -1,0 +1,23 @@
+{
+  "name": "@mcp-agent/cli",
+  "version": "0.1.0",
+  "description": "MCP Agent CLI",
+  "type": "module",
+  "bin": {
+    "mcp-agent": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/cli.ts",
+    "start": "node dist/cli.js",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mcp-agent/core": "workspace:*",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.17.0"
+  }
+}

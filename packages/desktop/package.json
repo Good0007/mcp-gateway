@@ -1,0 +1,15 @@
+{
+  "name": "@mcp-agent/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP Agent Desktop (Electron)",
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'TODO: electron dev'",
+    "build": "echo 'TODO: electron build'"
+  },
+  "dependencies": {
+    "@mcp-agent/web": "workspace:*",
+    "@mcp-agent/server": "workspace:*"
+  }
+}
