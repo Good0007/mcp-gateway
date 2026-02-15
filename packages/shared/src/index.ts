@@ -6,6 +6,9 @@
 // Configuration types
 export * from './types/config.js';
 
+// Web configuration types
+export * from './types/web-config.js';
+
 // MCP protocol types
 export * from './types/mcp.js';
 

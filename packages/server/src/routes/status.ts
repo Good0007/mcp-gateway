@@ -32,7 +32,8 @@ app.get('/', async (c) => {
     const agent = await getAgent();
     const status = agent.getStatus();
     const registry = agent.getRegistry();
-    const config = agent.getConfig();
+    const webConfigManager = agent.getWebConfigManager();
+    const endpoint = webConfigManager.getCurrentEndpoint();
     const stats = registry.getStats();
 
     const response: AgentStatusResponse = {
@@ -40,7 +41,7 @@ app.get('/', async (c) => {
       connected: status.connected,
       xiaozhi: {
         connected: status.connected,
-        endpoint: config.xiaozhi?.endpoint || '',
+        endpoint: endpoint?.url || '',
       },
       services: {
         total: stats.total,

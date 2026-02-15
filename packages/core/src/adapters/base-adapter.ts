@@ -128,18 +128,38 @@ export abstract class BaseServiceAdapter implements IMCPService {
   }
 
   /**
-   * Call a tool
+   * Call a tool with timeout protection
    */
   async callTool(request: CallToolRequest): Promise<CallToolResult> {
     this.assertRunning();
+
+    const timeout = this.config.timeout || 30000; // Default 30 seconds
 
     try {
       logger.debug(`Calling tool: ${request.name}`, {
         serviceId: this.config.id,
         arguments: request.arguments,
+        timeout,
       });
 
-      const result = await this.doCallTool(request);
+      // Create timeout promise
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(
+            new ServiceError(
+              ErrorCode.SERVICE_TIMEOUT,
+              this.config.id,
+              `Tool call timeout after ${timeout}ms: ${request.name}`
+            )
+          );
+        }, timeout);
+      });
+
+      // Race between tool call and timeout
+      const result = await Promise.race([
+        this.doCallTool(request),
+        timeoutPromise,
+      ]);
 
       logger.debug(`Tool call completed: ${request.name}`, {
         serviceId: this.config.id,

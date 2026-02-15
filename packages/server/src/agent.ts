@@ -9,8 +9,9 @@ import { MCPAgent } from '@mcp-agent/core';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Default config path (can be overridden by env var)
-const configPath = process.env.MCP_CONFIG_PATH || path.resolve(__dirname, '../../../config/agent-config.json');
+// Default config directory (can be overridden by env var)
+// MCPAgent will look for web-config.json in this directory
+const configDir = process.env.MCP_CONFIG_DIR || path.resolve(__dirname, '../../../config');
 
 let agentInstance: MCPAgent | null = null;
 let starting = false;
@@ -33,8 +34,9 @@ export async function getAgent(): Promise<MCPAgent> {
 
   starting = true;
   try {
-    console.log(`📂 Loading config from: ${configPath}`);
-    agentInstance = new MCPAgent(configPath);
+    console.log(`📂 Config directory: ${configDir}`);
+    console.log(`📄 Loading config from: ${configDir}/web-config.json`);
+    agentInstance = new MCPAgent(configDir);
     
     // Start the agent
     await agentInstance.start();
@@ -43,7 +45,7 @@ export async function getAgent(): Promise<MCPAgent> {
     return agentInstance;
   } catch (error) {
     console.error('❌ Failed to initialize MCP Agent:', error);
-    starting = false;
+    agentInstance = null;  // Clear instance on failure
     throw error;
   } finally {
     starting = false;

@@ -70,8 +70,14 @@ export class StdioServiceAdapter extends BaseServiceAdapter {
         }
       );
 
-      // Connect
-      await this.client.connect(this.transport);
+      // Connect with timeout
+      const connectTimeout = 30000; // 30 seconds
+      const connectPromise = this.client.connect(this.transport);
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('连接超时：服务启动时间过长')), connectTimeout);
+      });
+
+      await Promise.race([connectPromise, timeoutPromise]);
 
       // Get server info
       const serverInfo = this.client.getServerVersion();
@@ -85,16 +91,63 @@ export class StdioServiceAdapter extends BaseServiceAdapter {
         );
       }
 
+      logger.info(`Service ${config.id} initialized successfully`, {
+        serverInfo,
+        capabilities,
+      });
+
       return {
         protocolVersion: '2024-11-05',
         serverInfo,
         capabilities: capabilities || {},
       };
-    } catch (error) {
+    } catch (error: any) {
       // Cleanup on error
       await this.cleanup();
-      throw error;
+
+      // Enhance error messages with helpful information
+      let errorMessage = error.message || 'Unknown error';
+      let suggestion = '';
+
+      // Check for common error patterns
+      if (error.code === 'ENOENT' || errorMessage.includes('ENOENT')) {
+        errorMessage = `命令未找到: ${config.command}`;
+        suggestion = this.getCommandNotFoundSuggestion(config.command);
+      } else if (error.code === 'EACCES' || errorMessage.includes('EACCES')) {
+        errorMessage = `权限被拒绝: ${config.command}`;
+        suggestion = `请检查命令是否有执行权限，或尝试: chmod +x ${config.command}`;
+      } else if (errorMessage.includes('spawn') && errorMessage.includes('ENOENT')) {
+        errorMessage = `无法启动进程: ${config.command}`;
+        suggestion = this.getCommandNotFoundSuggestion(config.command);
+      } else if (errorMessage.includes('连接超时')) {
+        suggestion = '服务启动时间过长，可能需要：\n1. 检查命令和参数是否正确\n2. 检查服务是否需要安装依赖\n3. 查看服务日志获取详细错误信息';
+      }
+
+      const fullMessage = suggestion ? `${errorMessage}\n\n建议: ${suggestion}` : errorMessage;
+
+      throw new ServiceError(
+        ErrorCode.SERVICE_INITIALIZATION_FAILED,
+        config.id,
+        fullMessage,
+        undefined,
+        error
+      );
     }
+  }
+
+  /**
+   * Get helpful suggestion for command not found errors
+   */
+  private getCommandNotFoundSuggestion(command: string): string {
+    const suggestions: Record<string, string> = {
+      'npx': '请安装 Node.js 和 npm:\n• macOS: brew install node\n• Ubuntu: sudo apt install nodejs npm\n• Windows: 从 https://nodejs.org 下载安装',
+      'node': '请安装 Node.js:\n• macOS: brew install node\n• Ubuntu: sudo apt install nodejs\n• Windows: 从 https://nodejs.org 下载安装',
+      'python': '请安装 Python:\n• macOS: brew install python\n• Ubuntu: sudo apt install python3\n• Windows: 从 https://python.org 下载安装',
+      'python3': '请安装 Python 3:\n• macOS: brew install python\n• Ubuntu: sudo apt install python3\n• Windows: 从 https://python.org 下载安装',
+      'uvx': '请安装 uv (Python 包管理器):\n• pip install uv\n• 或访问: https://docs.astral.sh/uv/',
+    };
+
+    return suggestions[command] || `请确保 ${command} 已安装并在系统 PATH 中。\n可以运行 "which ${command}" (Unix) 或 "where ${command}" (Windows) 检查。`;
   }
 
   /**

@@ -24,6 +24,7 @@ export interface BaseServiceConfig {
   name: string;
   description?: string;
   enabled: boolean;
+  timeout?: number; // Tool call timeout in milliseconds (default: 30000)
 }
 
 /**

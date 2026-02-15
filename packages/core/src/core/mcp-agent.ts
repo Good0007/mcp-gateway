@@ -7,9 +7,10 @@ import { EventEmitter } from 'events';
 import { ServiceRegistry, RegistryEvent } from './service-registry.js';
 import { ToolAggregator } from './tool-aggregator.js';
 import { XiaozhiConnection, ConnectionEvent } from './xiaozhi-connection.js';
-import { ConfigLoader, ConfigLoaderEvent } from '../config/config-loader.js';
-import { MCPAgentConfig } from '../types/config.js';
+import { WebConfigManager, WebConfigEvent } from '../config/web-config-manager.js';
+import { RuntimeStateManager } from '../config/runtime-state-manager.js';
 import { initLogger, logger } from '../utils/logger.js';
+import path from 'path';
 
 /**
  * Agent events
@@ -29,16 +30,35 @@ export class MCPAgent extends EventEmitter {
   private registry: ServiceRegistry;
   private aggregator: ToolAggregator;
   private connection: XiaozhiConnection | null = null;
-  private configLoader: ConfigLoader;
+  private webConfigManager: WebConfigManager;
+  private runtimeStateManager: RuntimeStateManager;
+  private configDir: string;
   private isRunning = false;
 
-  constructor(configPath: string) {
+  /**
+   * Create MCP Agent instance
+   * @param configDirOrPath - Config directory path, or legacy config file path (auto-detected)
+   */
+  constructor(configDirOrPath: string) {
     super();
+
+    // Auto-detect if this is a file path or directory
+    // Legacy: /path/to/agent-config.json -> use /path/to as configDir
+    // New: /path/to/config -> use as configDir directly
+    if (configDirOrPath.endsWith('.json')) {
+      // Legacy file path
+      this.configDir = path.dirname(configDirOrPath);
+      logger.info('Detected legacy config file path, using directory', { configDir: this.configDir });
+    } else {
+      // Modern directory path
+      this.configDir = configDirOrPath;
+    }
 
     // Initialize components
     this.registry = new ServiceRegistry();
     this.aggregator = new ToolAggregator(this.registry);
-    this.configLoader = new ConfigLoader(configPath);
+    this.webConfigManager = new WebConfigManager(this.configDir);
+    this.runtimeStateManager = new RuntimeStateManager(this.configDir);
 
     // Setup event forwarding
     this.setupEventHandlers();
@@ -66,21 +86,19 @@ export class MCPAgent extends EventEmitter {
       this.emit(AgentEvent.ERROR, error);
     });
 
-    // Config loader events
-    this.configLoader.on(ConfigLoaderEvent.CHANGED, (config: MCPAgentConfig) => {
-      logger.info('Configuration changed, applying updates');
-      void this.applyConfigChanges(config)
-        .then(() => {
-          this.emit(AgentEvent.CONFIG_CHANGED, config);
-        })
-        .catch((error: unknown) => {
-          logger.error('Failed to apply config changes', { error });
-          this.emit(AgentEvent.ERROR, error);
-        });
+    // Web config events
+    this.webConfigManager.on(WebConfigEvent.SERVICE_ADDED, () => {
+      logger.info('Service added via Web UI, reloading...');
+      void this.reloadServices();
     });
 
-    this.configLoader.on(ConfigLoaderEvent.ERROR, (error: Error) => {
-      logger.error('Config loader error', { error });
+    this.webConfigManager.on(WebConfigEvent.SERVICE_REMOVED, () => {
+      logger.info('Service removed via Web UI, reloading...');
+      void this.reloadServices();
+    });
+
+    this.webConfigManager.on(WebConfigEvent.ERROR, (error: Error) => {
+      logger.error('Web config error', { error });
       this.emit(AgentEvent.ERROR, error);
     });
   }
@@ -97,28 +115,56 @@ export class MCPAgent extends EventEmitter {
     try {
       logger.info('Starting MCP Agent');
 
-      // Load configuration
-      const config = await this.configLoader.load();
+      // Load web configuration (unified config source)
+      const webConfig = await this.webConfigManager.load();
+      logger.info('Configuration loaded', { 
+        services: webConfig.services.length,
+        endpoints: webConfig.xiaozhi.endpoints.length,
+      });
 
-      // Initialize logger with config
-      if (config.logging) {
+      // Initialize logger with preferences
+      const prefs = webConfig.preferences;
+      if (prefs.logging) {
         initLogger({
-          level: config.logging.level,
-          file: config.logging.file,
+          level: prefs.logging.level || 'info',
+          file: prefs.logging.file,
         });
       }
 
-      // Register all services
-      for (const serviceConfig of config.services) {
+      // Load runtime state
+      await this.runtimeStateManager.load();
+
+      // Attach runtime state manager to registry
+      this.registry.setRuntimeStateManager(this.runtimeStateManager);
+
+      // Register all services from web config
+      for (const serviceConfig of webConfig.services) {
         await this.registry.register(serviceConfig);
+      }
+
+      // Get current endpoint
+      const currentEndpoint = this.webConfigManager.getCurrentEndpoint();
+      if (!currentEndpoint) {
+        logger.warn('No Xiaozhi endpoint configured. The agent will start without xiaozhi connection.');
+        logger.warn('Please configure an endpoint through the Web UI to enable xiaozhi integration.');
+        
+        // Mark as running even without xiaozhi connection
+        this.isRunning = true;
+        this.emit(AgentEvent.STARTED);
+        
+        logger.info('MCP Agent started in limited mode', {
+          services: this.registry.getServiceIds().length,
+          endpoint: 'none',
+        });
+        return;
       }
 
       // Create connection to xiaozhi
       this.connection = new XiaozhiConnection(
         {
-          endpoint: config.xiaozhi.endpoint!,  // Already validated in ConfigLoader
-          reconnectInterval: config.xiaozhi.reconnectInterval,
-          maxReconnectAttempts: config.xiaozhi.maxReconnectAttempts,
+          endpoint: currentEndpoint.url,
+          reconnectInterval: prefs.reconnectInterval || 5000,
+          maxReconnectAttempts: prefs.maxReconnectAttempts || 10,
         },
         this.aggregator
       );
@@ -141,19 +187,60 @@ export class MCPAgent extends EventEmitter {
       // Connect to xiaozhi
       await this.connection.connect();
 
-      // Start config file watcher
-      this.configLoader.watch();
-
       this.isRunning = true;
       this.emit(AgentEvent.STARTED);
 
       logger.info('MCP Agent started successfully', {
         services: this.registry.getServiceIds().length,
-        xiaozhi: config.xiaozhi.endpoint,
+        endpoint: currentEndpoint.name,
       });
     } catch (error) {
       logger.error('Failed to start agent', { error });
       this.emit(AgentEvent.ERROR, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reload services from configuration
+   */
+  private async reloadServices(): Promise<void> {
+    try {
+      const webConfig = await this.webConfigManager.load();
+      
+      // Get current service IDs
+      const currentIds = new Set(this.registry.getServiceIds());
+      const newIds = new Set(webConfig.services.map(s => s.id));
+
+      // Remove services that are no longer in config
+      for (const id of currentIds) {
+        if (!newIds.has(id)) {
+          logger.info('Removing service no longer in config', { id });
+          await this.registry.unregister(id);
+        }
+      }
+
+      // Add or update services
+      for (const serviceConfig of webConfig.services) {
+        if (currentIds.has(serviceConfig.id)) {
+          // Service exists - restart if config changed
+          logger.info('Updating service', { id: serviceConfig.id });
+          await this.registry.unregister(serviceConfig.id);
+          await this.registry.register(serviceConfig);
+        } else {
+          // New service - register it
+          logger.info('Adding new service', { id: serviceConfig.id });
+          await this.registry.register(serviceConfig);
+        }
+      }
+
+      // Reconnect to xiaozhi to refresh tool list
+      if (this.connection?.isConnected()) {
+        logger.info('Configuration changed, reconnecting to xiaozhi to refresh tools');
+        await this.connection.reconnect();
+      }
+    } catch (error) {
+      logger.error('Failed to reload services', { error });
       throw error;
     }
   }
@@ -169,9 +256,6 @@ export class MCPAgent extends EventEmitter {
 
     try {
       logger.info('Stopping MCP Agent');
-
-      // Stop config watcher
-      await this.configLoader.unwatch();
 
       // Disconnect from xiaozhi
       if (this.connection) {
@@ -204,65 +288,20 @@ export class MCPAgent extends EventEmitter {
     await this.start();
   }
 
-  /**
-   * Apply configuration changes (hot reload)
-   */
-  private async applyConfigChanges(newConfig: MCPAgentConfig): Promise<void> {
-    // Update logger
-    if (newConfig.logging) {
-      initLogger({
-        level: newConfig.logging.level,
-        file: newConfig.logging.file,
-      });
-    }
 
-    // Get current service IDs
-    const currentIds = new Set(this.registry.getServiceIds());
-    const newIds = new Set(newConfig.services.map((s) => s.id));
-
-    // Remove services that no longer exist
-    for (const id of currentIds) {
-      if (!newIds.has(id)) {
-        logger.info('Removing service from config', { id });
-        await this.registry.unregister(id);
-      }
-    }
-
-    // Add or update services
-    for (const serviceConfig of newConfig.services) {
-      if (currentIds.has(serviceConfig.id)) {
-        // Service exists - restart if config changed
-        logger.info('Updating service', { id: serviceConfig.id });
-        await this.registry.unregister(serviceConfig.id);
-        await this.registry.register(serviceConfig);
-      } else {
-        // New service - register it
-        logger.info('Adding new service', { id: serviceConfig.id });
-        await this.registry.register(serviceConfig);
-      }
-    }
-
-    // Reconnect to xiaozhi to refresh tool list
-    // Note: xiaozhi doesn't support the standard MCP tools/list_changed notification,
-    // so we need to reconnect to trigger a fresh initialize + tools/list handshake
-    if (this.connection?.isConnected()) {
-      logger.info('Configuration changed, reconnecting to xiaozhi to refresh tools');
-      await this.connection.reconnect();
-    }
-    
-    // For future use when xiaozhi supports standard MCP notifications:
-    // void this.connection?.notifyToolsUpdated();
-  }
 
   /**
    * Get agent status
    */
   getStatus() {
+    const webConfig = this.webConfigManager.getConfig();
     return {
       running: this.isRunning,
       connected: this.connection?.isConnected() || false,
       services: this.registry.getStats(),
-      config: this.configLoader.isLoaded(),
+      configLoaded: webConfig !== null,
+      servicesCount: webConfig?.services.length || 0,
+      endpointsCount: webConfig?.xiaozhi.endpoints.length || 0,
     };
   }
 
@@ -288,9 +327,22 @@ export class MCPAgent extends EventEmitter {
   }
 
   /**
-   * Get configuration
+   * Get web configuration manager
+   * 
+   * Use this to access the unified configuration:
+   * - webConfigManager.getServices() - Get service configurations
+   * - webConfigManager.getEndpoints() - Get Xiaozhi endpoints
+   * - webConfigManager.getPreferences() - Get preferences
+   * - webConfigManager.getConfig() - Get full config object
    */
-  getConfig(): MCPAgentConfig {
-    return this.configLoader.getConfig();
+  getWebConfigManager(): WebConfigManager {
+    return this.webConfigManager;
+  }
+
+  /**
+   * Get runtime state manager
+   */
+  getRuntimeStateManager(): RuntimeStateManager {
+    return this.runtimeStateManager;
   }
 }

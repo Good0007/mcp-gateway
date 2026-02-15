@@ -4,6 +4,8 @@
  */
 
 import winston from 'winston';
+import TransportStream from 'winston-transport';
+import { getLogBuffer, type LogEntry } from './log-buffer.js';
 
 /**
  * Log level type
@@ -17,13 +19,48 @@ export interface LoggerConfig {
   level?: LogLevel;
   file?: string;
   console?: boolean;
+  buffer?: boolean;  // Enable log buffer
+}
+
+/**
+ * Custom transport to push logs to LogBuffer
+ */
+class LogBufferTransport extends TransportStream {
+  constructor(opts?: TransportStream.TransportStreamOptions) {
+    super(opts);
+  }
+
+  log(info: any, callback: () => void): void {
+    setImmediate(() => {
+      const logBuffer = getLogBuffer();
+      
+      const entry: LogEntry = {
+        timestamp: info.timestamp || new Date().toISOString(),
+        level: info.level as LogEntry['level'],
+        message: info.message,
+        service: info.service,
+        meta: { ...info },
+      };
+
+      // Remove internal winston fields
+      if (entry.meta) {
+        delete entry.meta.level;
+        delete entry.meta.message;
+        delete entry.meta.timestamp;
+      }
+
+      logBuffer.add(entry);
+    });
+
+    callback();
+  }
 }
 
 /**
  * Create a logger instance
  */
 export function createLogger(config: LoggerConfig = {}): winston.Logger {
-  const { level = 'info', file, console: enableConsole = true } = config;
+  const { level = 'info', file, console: enableConsole = true, buffer = true } = config;
 
   const transports: winston.transport[] = [];
 
@@ -51,6 +88,18 @@ export function createLogger(config: LoggerConfig = {}): winston.Logger {
     transports.push(
       new winston.transports.File({
         filename: file,
+        format: winston.format.combine(
+          winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+          winston.format.json()
+        ),
+      })
+    );
+  }
+
+  // LogBuffer transport (for API access)
+  if (buffer) {
+    transports.push(
+      new LogBufferTransport({
         format: winston.format.combine(
           winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
           winston.format.json()

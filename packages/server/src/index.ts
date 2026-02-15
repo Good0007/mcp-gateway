@@ -24,4 +24,13 @@ serve({
   console.log('   GET    /api/tools');
   console.log('   POST   /api/tools/call');
   console.log('   GET    /api/plugins');
+  console.log('   GET    /api/config');
+  console.log('   GET    /api/config/export');
+  console.log('   POST   /api/config/import');
+  console.log('   GET    /api/config/endpoints');
+  console.log('   POST   /api/config/endpoints');
+  console.log('   DELETE /api/config/endpoints/:id');
+  console.log('   POST   /api/config/endpoints/:id/select');
+  console.log('   GET    /api/config/preferences');
+  console.log('   PATCH  /api/config/preferences');
 });

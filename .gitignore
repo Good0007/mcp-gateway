@@ -17,6 +17,10 @@ build/
 .env
 .env.local
 .env.*.local
+config/.env
+
+# Runtime state (auto-generated)
+config/runtime-state.json
 
 # IDE
 .vscode/
@@ -41,3 +45,4 @@ temp/
 
 # OS
 Thumbs.db
+config

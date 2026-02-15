@@ -25,7 +25,7 @@ function parseArgs() {
   const rawPath =
     args.find((arg) => arg.startsWith('--config='))?.split('=')[1] ||
     process.env.MCP_AGENT_CONFIG ||
-    'config/agent-config.json';
+    'config';  // Default to config directory
 
   // If not absolute, resolve relative to project root
   const configPath = path.isAbsolute(rawPath)

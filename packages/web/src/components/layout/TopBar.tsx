@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Moon, Sun, Bell, Search } from 'lucide-react';
+import { Moon, Sun, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TopBarProps {
@@ -45,10 +45,6 @@ export function TopBar({ title, subtitle }: TopBarProps) {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-1">
-        {/* Search */}
-        <button className="p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
-          <Search className="w-4 h-4" />
-        </button>
 
         {/* Notifications */}
         <button className="p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors relative">

@@ -3,11 +3,13 @@ import {
   ShoppingBag,
   Globe,
   Settings,
-  BarChart3,
   FileText,
   Zap,
+  Database,
+  Terminal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAgentStatus } from '@/hooks/useAgent';
 
 interface SidebarProps {
   currentPage: string;
@@ -22,13 +24,19 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: 'market', label: '插件市场', icon: ShoppingBag },
-  { id: 'xiaozhi', label: 'Xiaozhi 服务', icon: Globe },
-  { id: 'services', label: '服务配置', icon: Settings },
-  { id: 'monitor', label: '连接监控', icon: BarChart3 },
+  { id: 'xiaozhi', label: '小智管理', icon: Globe },
+  { id: 'services', label: '服务管理', icon: Settings },
+  { id: 'environment', label: '环境检测', icon: Terminal },
+  { id: 'config', label: '配置管理', icon: Database },
   { id: 'logs', label: '日志查看', icon: FileText },
 ];
 
 export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
+  const { data: status } = useAgentStatus();
+  
+  const isRunning = status?.running ?? false;
+  const isConnected = status?.connected ?? false;
+  
   return (
     <aside className="w-56 h-screen flex flex-col bg-white dark:bg-slate-900 border-r border-gray-200/60 dark:border-slate-800">
       {/* Logo */}
@@ -85,8 +93,26 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       {/* Footer - Status */}
       <div className="px-4 py-3 border-t border-gray-200 dark:border-slate-800">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50 animate-pulse" />
-          <span className="text-[11px] text-gray-500 dark:text-slate-500">系统运行中</span>
+          <div className={cn(
+            "w-2 h-2 rounded-full shadow-sm",
+            isRunning && isConnected
+              ? "bg-emerald-400 shadow-emerald-400/50 animate-pulse"
+              : isRunning
+              ? "bg-amber-400 shadow-amber-400/50"
+              : "bg-gray-300 dark:bg-slate-600"
+          )} />
+          <span className="text-[11px] text-gray-500 dark:text-slate-500">
+            {isRunning && isConnected
+              ? "已连接"
+              : isRunning
+              ? "运行中"
+              : "未运行"}
+          </span>
+          {status?.services && (
+            <span className="ml-auto text-[11px] text-gray-400 dark:text-slate-600">
+              {status.services.running}/{status.services.total}
+            </span>
+          )}
         </div>
       </div>
     </aside>

@@ -541,25 +541,50 @@ export class XiaozhiConnection extends EventEmitter {
     const interval = this.config.reconnectInterval || 5000;
 
     if (this.reconnectAttempts >= maxAttempts) {
-      logger.error('Max reconnect attempts reached', { attempts: this.reconnectAttempts });
+      const errorMsg = `Max reconnect attempts (${maxAttempts}) reached. Please check your connection and restart the service.`;
+      logger.error(errorMsg, { 
+        attempts: this.reconnectAttempts,
+        endpoint: this.config.endpoint 
+      });
       this.emit(
         ConnectionEvent.ERROR,
-        new ConnectionError('Max reconnect attempts reached')
+        new ConnectionError(errorMsg)
       );
       return;
     }
 
     this.reconnectAttempts++;
-    logger.info('Scheduling reconnect', {
+    const nextAttemptTime = new Date(Date.now() + interval).toISOString();
+    logger.info('⏳ Scheduling reconnect to Xiaozhi', {
       attempt: this.reconnectAttempts,
       maxAttempts,
-      delay: interval,
+      delay: `${interval}ms`,
+      nextAttempt: nextAttemptTime,
+      endpoint: this.config.endpoint,
     });
 
     this.reconnectTimer = setTimeout(() => {
-      void this.connect().catch((error: unknown) => {
-        logger.error('Reconnect failed', { error });
+      logger.info('🔄 Attempting to reconnect to Xiaozhi...', {
+        attempt: this.reconnectAttempts,
+        maxAttempts,
       });
+      
+      void this.connect()
+        .then(() => {
+          logger.info('✅ Reconnected to Xiaozhi successfully', {
+            afterAttempts: this.reconnectAttempts,
+            endpoint: this.config.endpoint,
+          });
+          // Reset reconnect counter on successful connection
+          this.reconnectAttempts = 0;
+        })
+        .catch((error: unknown) => {
+          logger.error('❌ Reconnect attempt failed', { 
+            attempt: this.reconnectAttempts,
+            error,
+            willRetry: this.reconnectAttempts < maxAttempts,
+          });
+        });
     }, interval);
   }
 

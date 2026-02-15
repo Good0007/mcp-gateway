@@ -18,6 +18,7 @@ import { StdioServiceAdapter } from '../adapters/stdio-adapter.js';
 import { EmbeddedServiceAdapter } from '../adapters/embedded-adapter.js';
 import { SSEServiceAdapter } from '../adapters/sse-adapter.js';
 import { HTTPServiceAdapter } from '../adapters/http-adapter.js';
+import { RuntimeStateManager } from '../config/runtime-state-manager.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -36,6 +37,15 @@ export enum RegistryEvent {
  */
 export class ServiceRegistry extends EventEmitter {
   private services = new Map<string, BaseServiceAdapter>();
+  private runtimeState?: RuntimeStateManager;
+
+  /**
+   * Set runtime state manager (optional)
+   */
+  setRuntimeStateManager(runtimeState: RuntimeStateManager): void {
+    this.runtimeState = runtimeState;
+    logger.debug('Runtime state manager attached to service registry');
+  }
 
   /**
    * Create adapter for a service configuration
@@ -127,6 +137,12 @@ export class ServiceRegistry extends EventEmitter {
 
     try {
       await adapter.initialize();
+      
+      // Update runtime state
+      if (this.runtimeState) {
+        await this.runtimeState.updateServiceEnabled(serviceId, true);
+      }
+      
       this.emit(RegistryEvent.SERVICE_STARTED, serviceId);
       logger.info(`Service started: ${serviceId}`);
     } catch (error) {
@@ -150,6 +166,12 @@ export class ServiceRegistry extends EventEmitter {
 
     try {
       await adapter.close();
+      
+      // Update runtime state
+      if (this.runtimeState) {
+        await this.runtimeState.updateServiceEnabled(serviceId, false);
+      }
+      
       this.emit(RegistryEvent.SERVICE_STOPPED, serviceId);
       logger.info(`Service stopped: ${serviceId}`);
     } catch (error) {

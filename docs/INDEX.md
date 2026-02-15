@@ -1,53 +1,25 @@
-# MCP Agent 文档中心
+# 文档中心
 
-> 欢迎查阅MCP Agent的完整设计文档
+## 快速开始
 
-## 📚 文档导航
+- **[README](../README.md)** - 项目概览、特性和基本使用
+- **[QUICKSTART](../QUICKSTART.md)** - 快速启动指南（3 步启动服务）
 
-### 🎯 快速开始
-- **[README](../README.md)** - 项目概览和快速上手
-- **[快速入门指南](QUICK_START.md)** - 详细的使用教程和配置说明
+## 技术文档
 
-### 🏗️ 架构设计
-- **[架构设计文档](ARCHITECTURE.md)** - 系统架构、模块设计、数据流
-  - 整体架构图
-  - 核心模块设计
-  - 设计模式应用
-  - 目录结构
-  - 扩展性设计
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - 系统架构设计
+- **[TECHNICAL_SPEC.md](TECHNICAL_SPEC.md)** - 技术规范和接口定义
 
-### 📋 技术规范
-- **[技术规范文档](TECHNICAL_SPEC.md)** - 详细的技术实现规范
-  - 类型系统定义
-  - 核心接口规范
-  - 配置验证规范
-  - 错误处理规范
-  - 日志规范
-  - 性能指标
-  - 安全性规范
-  - 测试规范
+## 集成指南
 
-### 📅 实施计划
-- **[实施计划文档](IMPLEMENTATION_PLAN.md)** - 14天开发详细计划
-  - 6个Phase分阶段实施
-  - 130个具体任务清单
-  - 里程碑定义
-  - 风险评估和缓解
-  - 验收标准
+- **[MULTI_SERVICES.md](MULTI_SERVICES.md)** - 多服务集成指南
+- **[IMPORT_CONFIG_GUIDE.md](IMPORT_CONFIG_GUIDE.md)** - 配置导入说明
+- **[GUI_ARCHITECTURE.md](GUI_ARCHITECTURE.md)** - Web 界面架构
 
-### 🔍 设计审查
-- **[设计审查文档](DESIGN_REVIEW.md)** - 设计质量全面评估
-  - 设计模式审查（5个模式）
-  - 架构层次评估
-  - 扩展性分析
-  - 性能审查
-  - 安全性评估
-  - 可维护性检查
-  - 遗漏功能识别
-  - 技术债务管理
-  - **总体评分: 4.6/5**
+## 参考
 
-## 📊 文档统计
+- **[ARCHIVED.md](ARCHIVED.md)** - 已归档的历史文档
+
 
 | 文档 | 行数 | 主要内容 | 目标读者 |
 |-----|------|---------|---------|

@@ -9,6 +9,7 @@ import { EventEmitter } from 'events';
 import { MCPAgentConfig, validateConfig } from '../types/config.js';
 import { ConfigurationError, ErrorCode } from '../types/errors.js';
 import { logger } from '../utils/logger.js';
+import { RuntimeStateManager } from './runtime-state-manager.js';
 
 /**
  * Config loader events
@@ -25,9 +26,13 @@ export enum ConfigLoaderEvent {
 export class ConfigLoader extends EventEmitter {
   private config: MCPAgentConfig | null = null;
   private watcher: FSWatcher | null = null;
+  private runtimeState: RuntimeStateManager;
 
-  constructor(private readonly configPath: string) {
+  constructor(private readonly configPath: string, stateDir?: string) {
     super();
+    // Default state directory is same as config directory
+    const defaultStateDir = configPath.substring(0, configPath.lastIndexOf('/'));
+    this.runtimeState = new RuntimeStateManager(stateDir || defaultStateDir);
   }
 
   /**
@@ -76,6 +81,9 @@ export class ConfigLoader extends EventEmitter {
           { path: this.configPath }
         );
       }
+
+      // Load runtime state and merge with config
+      await this.mergeRuntimeState();
 
       logger.info('Configuration loaded successfully', {
         services: this.config.services.length,
@@ -196,5 +204,53 @@ export class ConfigLoader extends EventEmitter {
       logger.error('Configuration validation failed', { path, error });
       return false;
     }
+  }
+
+  /**
+   * Merge runtime state with configuration
+   * Updates service enabled status from runtime state
+   */
+  private async mergeRuntimeState(): Promise<void> {
+    if (!this.config) {
+      return;
+    }
+
+    try {
+      // Load runtime state
+      const state = await this.runtimeState.load();
+
+      // Merge enabled status for each service
+      for (const service of this.config.services) {
+        const runtimeService = state.services[service.id];
+        
+        if (runtimeService) {
+          // Use runtime state (overrides config file)
+          service.enabled = runtimeService.enabled;
+          logger.debug('Applied runtime state to service', {
+            serviceId: service.id,
+            enabled: service.enabled,
+            runtimeState: runtimeService,
+          });
+        } else {
+          // Initialize runtime state from config
+          await this.runtimeState.ensureServiceState(service.id, service.enabled);
+        }
+      }
+
+      logger.info('Runtime state merged with configuration', {
+        services: this.config.services.length,
+        runtimeServices: Object.keys(state.services).length,
+      });
+    } catch (error) {
+      logger.error('Failed to merge runtime state', { error });
+      // Continue with config file defaults on error
+    }
+  }
+
+  /**
+   * Get runtime state manager
+   */
+  getRuntimeStateManager(): RuntimeStateManager {
+    return this.runtimeState;
   }
 }
