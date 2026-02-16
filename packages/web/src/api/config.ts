@@ -151,3 +151,53 @@ export async function updatePreferences(
   
   return response.json();
 }
+
+// ==================== MCP Proxy Management ====================
+
+/**
+ * Get MCP proxy configuration
+ */
+export async function getMcpProxy(): Promise<{ mcpProxy: { enabled: boolean; token?: string } }> {
+  const response = await fetch(`${API_BASE}/config/mcp-proxy`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to get MCP proxy config');
+  }
+  return response.json();
+}
+
+/**
+ * Update MCP proxy configuration
+ */
+export async function updateMcpProxy(
+  updates: { enabled?: boolean; token?: string }
+): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/config/mcp-proxy`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to update MCP proxy config');
+  }
+  
+  return response.json();
+}
+
+/**
+ * Generate a new random token
+ */
+export async function generateProxyToken(): Promise<{ success: boolean; token: string }> {
+  const response = await fetch(`${API_BASE}/config/mcp-proxy/generate-token`, {
+    method: 'POST',
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to generate token');
+  }
+  
+  return response.json();
+}

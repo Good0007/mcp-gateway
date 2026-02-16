@@ -13,6 +13,7 @@ import pluginsRoutes from './routes/plugins.js';
 import configRoutes from './routes/config.js';
 import logsRoutes from './routes/logs.js';
 import environmentRoutes from './routes/environment.js';
+import mcpProxyRoutes from './routes/mcp-proxy.js';
 
 const app = new Hono();
 
@@ -34,6 +35,9 @@ app.route('/api/plugins', pluginsRoutes);
 app.route('/api/config', configRoutes);
 app.route('/api/logs', logsRoutes);
 app.route('/api/environment', environmentRoutes);
+
+// MCP Proxy routes (for external MCP clients)
+app.route('/mcp', mcpProxyRoutes);
 
 // Serve static files in production (built web app)
 if (process.env.NODE_ENV === 'production') {

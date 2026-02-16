@@ -23,7 +23,7 @@ export interface AggregatedTool extends Tool {
 export class ToolAggregator {
   constructor(
     private readonly registry: ServiceRegistry,
-    private readonly resultLimit: number = 1024
+    private readonly resultLimit: number = 10 * 1024 * 1024 // 10MB
   ) {}
 
   /**

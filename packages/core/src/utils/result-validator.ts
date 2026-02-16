@@ -9,8 +9,9 @@ import { logger } from './logger.js';
 
 /**
  * Default result size limit (bytes)
+ * 10MB - large enough for most use cases including Home Assistant device lists
  */
-export const DEFAULT_RESULT_LIMIT = 1024;
+export const DEFAULT_RESULT_LIMIT = 10 * 1024 * 1024;
 
 /**
  * Truncation warning message

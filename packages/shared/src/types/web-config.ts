@@ -12,6 +12,11 @@ export interface XiaozhiEndpoint {
   lastUsed?: string;
 }
 
+export interface McpProxyConfig {
+  enabled: boolean;
+  token?: string;
+}
+
 export interface WebConfigData {
   version: string;
   lastUpdate: string;
@@ -20,6 +25,7 @@ export interface WebConfigData {
     endpoints: XiaozhiEndpoint[];
     currentEndpointId?: string;
   };
+  mcpProxy: McpProxyConfig;
   preferences: {
     autoStartServices?: boolean;
     [key: string]: any;

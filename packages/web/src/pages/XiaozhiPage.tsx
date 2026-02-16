@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAgentStatus, useTools, useServices } from '@/hooks/useAgent';
 import { useEndpoints, useAddEndpoint, useRemoveEndpoint, useSelectEndpoint } from '@/hooks/useWebConfig';
-import { Loader, CheckCircle2, XCircle, RefreshCw, Zap, Wrench, Settings, Loader2, Plus, Trash2, ExternalLink, ChevronDown, Play, Square } from 'lucide-react';
+import { Loader, CheckCircle2, XCircle, RefreshCw, Zap, Wrench, Settings, Loader2, Plus, Trash2, ExternalLink, ChevronDown, Play, Square, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from '@/lib/toast';
+import type { Tool } from '@mcp-agent/shared';
 
 export function XiaozhiPage() {
   const { data: status, isLoading, error, refetch } = useAgentStatus();
@@ -22,6 +23,7 @@ export function XiaozhiPage() {
 
   // UI 状态
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
   
   // 表单状态
   const [newEndpointName, setNewEndpointName] = useState('');
@@ -291,28 +293,10 @@ export function XiaozhiPage() {
                                 {service.description || '无描述'}
                               </p>
                               {/* 工具标签 */}
-                              {serviceTools.length > 0 ? (
-                                <div className="flex flex-wrap gap-1.5">
-                                  <span className="text-[11px] text-gray-500 dark:text-slate-500 mr-1">
-                                    工具:
-                                  </span>
-                                  {serviceTools.map((tool, idx) => (
-                                    <Badge
-                                      key={`${tool.serviceId}-${tool.name}-${idx}`}
-                                      variant="default"
-                                      className="text-[10px] px-2 py-0.5 bg-primary-500/5 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300 border border-primary-500/20 hover:bg-primary-500/10 dark:hover:bg-primary-500/20 transition-colors cursor-default"
-                                      title={tool.description || tool.name}
-                                    >
-                                      <Wrench className="w-2.5 h-2.5 mr-1" />
-                                      {tool.name}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="text-[11px] text-gray-400 dark:text-slate-500 italic">
-                                  暂无工具
-                                </p>
-                              )}
+                              <ServiceToolsList 
+                                tools={serviceTools} 
+                                onToolClick={(tool) => setSelectedTool(tool)}
+                              />
                             </div>
                           </div>
                         </div>
@@ -525,6 +509,163 @@ export function XiaozhiPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* 工具详情弹窗 */}
+      {selectedTool && (
+        <div
+          className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedTool(null);
+          }}
+        >
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            {/* 标题栏 */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <Wrench className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {selectedTool.name}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedTool(null)}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500 dark:text-slate-400" />
+              </button>
+            </div>
+
+            {/* 内容区 */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* 描述 */}
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-1 block">描述</label>
+                <p className="text-sm text-gray-600 dark:text-slate-400">
+                  {selectedTool.description || '无描述'}
+                </p>
+              </div>
+
+              {/* 参数列表 */}
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-2 block">
+                  参数 ({Object.keys(selectedTool.parameters || {}).length})
+                </label>
+                {Object.keys(selectedTool.parameters || {}).length > 0 ? (
+                  <div className="space-y-3">
+                    {Object.entries(selectedTool.parameters).map(([key, param]) => (
+                      <div
+                        key={key}
+                        className="p-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-mono font-semibold text-gray-900 dark:text-white">
+                            {key}
+                          </span>
+                          {param.required && (
+                            <Badge className="text-[9px] bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20">
+                              必填
+                            </Badge>
+                          )}
+                          <Badge className="text-[9px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
+                            {param.type}
+                          </Badge>
+                        </div>
+                        {param.description && (
+                          <p className="text-xs text-gray-600 dark:text-slate-400 mb-2">
+                            {param.description}
+                          </p>
+                        )}
+                        {param.enum && (
+                          <div className="text-xs text-gray-500 dark:text-slate-500">
+                            <span className="font-medium">可选值:</span>{' '}
+                            <span className="font-mono">{JSON.stringify(param.enum)}</span>
+                          </div>
+                        )}
+                        {param.default !== undefined && (
+                          <div className="text-xs text-gray-500 dark:text-slate-500">
+                            <span className="font-medium">默认值:</span>{' '}
+                            <span className="font-mono">{JSON.stringify(param.default)}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-slate-500 italic">无参数</p>
+                )}
+              </div>
+
+              {/* JSON Schema */}
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-2 block">
+                  完整定义 (JSON)
+                </label>
+                <pre className="text-xs bg-gray-900 dark:bg-black text-gray-100 p-3 rounded-lg overflow-x-auto">
+                  <code>{JSON.stringify(selectedTool, null, 2)}</code>
+                </pre>
+              </div>
+            </div>
+
+            {/* 底部 */}
+            <div className="p-4 border-t border-gray-200 dark:border-slate-800 flex justify-end">
+              <Button variant="secondary" size="sm" onClick={() => setSelectedTool(null)}>
+                关闭
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 服务工具列表组件（带展开/折叠）
+function ServiceToolsList({ tools, onToolClick }: { tools: any[]; onToolClick: (tool: Tool) => void }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (tools.length === 0) {
+    return (
+      <p className="text-[11px] text-gray-400 dark:text-slate-500 italic">
+        暂无工具
+      </p>
+    );
+  }
+
+  const displayTools = expanded ? tools : tools.slice(0, 10);
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <span className="text-[11px] text-gray-500 dark:text-slate-500 mr-1">
+        工具:
+      </span>
+      {displayTools.map((tool, idx) => (
+        <button
+          key={`${tool.serviceId}-${tool.name}-${idx}`}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToolClick(tool);
+          }}
+          className="text-[10px] px-2 py-0.5 bg-primary-500/5 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300 border border-primary-500/20 hover:bg-primary-500/15 dark:hover:bg-primary-500/25 transition-colors cursor-pointer rounded-md inline-flex items-center gap-1"
+          title={tool.description || tool.name}
+        >
+          <Wrench className="w-2.5 h-2.5" />
+          {tool.name}
+        </button>
+      ))}
+      {tools.length > 10 && (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setExpanded(!expanded);
+          }}
+          className="text-[10px] px-2 py-0.5 bg-gray-500/5 dark:bg-slate-500/10 text-gray-600 dark:text-slate-400 border border-gray-500/20 hover:bg-gray-500/10 dark:hover:bg-slate-500/20 transition-colors cursor-pointer rounded-md inline-flex items-center gap-1"
+          title={expanded ? '收起' : '展开全部'}
+        >
+          {expanded ? '收起' : `+${tools.length - 10} 更多`}
+        </button>
+      )}
     </div>
   );
 }

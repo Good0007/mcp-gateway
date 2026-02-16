@@ -115,4 +115,6 @@ export interface MCPServiceMetadata {
   serverInfo?: ServerInfo;
   capabilities?: ServerCapabilities;
   error?: string;
+  type?: 'stdio' | 'embedded' | 'sse' | 'http';
+  toolCount?: number;
 }

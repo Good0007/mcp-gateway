@@ -47,10 +47,12 @@ app.get('/', async (c) => {
         id: s.id,
         name: s.name,
         description: s.description,
+        type: s.type,
         status: s.status,
         serverInfo: s.serverInfo,
         capabilities: s.capabilities,
         error: s.error,
+        toolCount: s.toolCount,
       })),
     };
 
@@ -80,6 +82,18 @@ app.get('/:id', async (c) => {
       return c.json({ error: 'Service config not found' }, 404);
     }
 
+    // Get tools from adapter if service is running
+    let tools: any[] = [];
+    const adapter = registry.get(id);
+    if (adapter && service.status === 'running') {
+      try {
+        const toolsResult = await adapter.listTools();
+        tools = toolsResult?.tools || [];
+      } catch {
+        // Service may not support listing tools
+      }
+    }
+
     const response: ServiceDetailResponse = {
       id: service.id,
       name: service.name,
@@ -88,8 +102,9 @@ app.get('/:id', async (c) => {
       serverInfo: service.serverInfo,
       capabilities: service.capabilities,
       error: service.error,
+      toolCount: service.toolCount,
       config: serviceConfig,
-      tools: [],
+      tools,
     };
 
     return c.json(response);
@@ -107,6 +122,11 @@ app.post('/:id/start', async (c) => {
     const registry = agent.getRegistry();
 
     await registry.start(id);
+
+    // Update enabled state in config file
+    const webConfigManager = agent.getWebConfigManager();
+    await webConfigManager.updateService(id, { enabled: true });
+    console.log(`Service ${id} enabled state saved to config`);
 
     // Reconnect to Xiaozhi to report service changes
     const xiaozhi = agent.getConnection();
@@ -133,6 +153,11 @@ app.post('/:id/stop', async (c) => {
     const registry = agent.getRegistry();
 
     await registry.stop(id);
+
+    // Update enabled state in config file
+    const webConfigManager = agent.getWebConfigManager();
+    await webConfigManager.updateService(id, { enabled: false });
+    console.log(`Service ${id} disabled state saved to config`);
 
     // Reconnect to Xiaozhi to report service changes
     const xiaozhi = agent.getConnection();

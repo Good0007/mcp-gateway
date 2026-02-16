@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useServices, useStartService, useStopService, useDeleteService, useAddService, useUpdateService, useService } from '@/hooks/useAgent';
-import { Loader, Play, Square, AlertCircle, Settings, Plus, Trash2, PlayCircle, StopCircle, X, Edit, Upload, CheckCircle2 } from 'lucide-react';
+import { Loader, Play, Square, AlertCircle, Settings, Plus, Trash2, PlayCircle, StopCircle, X, Edit, Upload, CheckCircle2, Wrench } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import type { MCPServiceStatus } from '@mcp-agent/shared';
+import type { MCPServiceStatus, Tool } from '@mcp-agent/shared';
 import { parseMCPConfig } from '@/utils/mcpConfigParser';
 import { toast } from 'sonner';
 
@@ -50,7 +50,14 @@ export function ServicesPage() {
     baseUrl: '',
     headers: '',
   });
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<{
+    id: string;
+    name: string;
+    type?: 'stdio' | 'embedded' | 'sse' | 'http';
+  } | null>(null);
+
+  // 工具详情弹窗状态
+  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
 
   // 导入配置弹窗状态
   const [showImportModal, setShowImportModal] = useState(false);
@@ -227,13 +234,20 @@ export function ServicesPage() {
   };
 
   const handleDeleteService = (serviceId: string) => {
-    setShowDeleteConfirm(serviceId);
+    const service = services.find(s => s.id === serviceId);
+    if (service) {
+      setShowDeleteConfirm({
+        id: serviceId,
+        name: service.name,
+        type: service.type,
+      });
+    }
   };
 
   const confirmDelete = async () => {
     if (showDeleteConfirm) {
       try {
-        await deleteService.mutateAsync(showDeleteConfirm);
+        await deleteService.mutateAsync(showDeleteConfirm.id);
         toast.success('服务删除成功');
         setShowDeleteConfirm(null);
       } catch (err) {
@@ -439,6 +453,18 @@ export function ServicesPage() {
                         <span>工具数: {service.toolCount}</span>
                       )}
                     </div>
+
+                    {/* 工具列表 - 只在服务运行时显示 */}
+                    {service.status === 'running' && (
+                      <div className="mt-3">
+                        <div className="flex flex-wrap gap-1.5 items-center">
+                          <span className="text-[11px] text-gray-500 dark:text-slate-500 mr-1">工具:</span>
+                          <ToolsList serviceId={service.id} onToolClick={(tool) => {
+                            setSelectedTool(tool);
+                          }} />
+                        </div>
+                      </div>
+                    )}
 
                     {service.error && (
                       <div className="mt-2 flex items-start gap-2 p-3 rounded-lg bg-red-500/5 border border-red-500/20">
@@ -712,30 +738,39 @@ export function ServicesPage() {
           
           {/* 弹窗内容 */}
           <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md">
-            <Card className="dark:bg-slate-900 dark:border-slate-800 border-red-500/50 shadow-2xl">
+            <Card className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-2xl">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
-                    <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-500/10 flex items-center justify-center">
+                    <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-500" />
                   </div>
                   <div className="flex-1">
                     <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
                       确认删除服务
                     </h3>
-                    <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
-                      确定要删除服务 <span className="font-semibold text-red-600 dark:text-red-400">{services.find(s => s.id === showDeleteConfirm)?.name}</span> 吗？此操作无法撤销。
+                    <p className="text-sm text-gray-700 dark:text-slate-300 mb-4">
+                      确定要删除服务 <span className="font-semibold text-red-600 dark:text-red-500">{showDeleteConfirm.name}</span> 吗？此操作无法撤销。
                     </p>
+                    
+                    {showDeleteConfirm.type === 'stdio' && (
+                      <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-md">
+                        <p className="text-xs text-blue-900 dark:text-blue-300">
+                          💡 该服务通过 stdio 方式安装。删除后，其安装的依赖环境（如 npm 包）仍将保留在系统中。如需完全卸载，请手动运行相关卸载命令。
+                        </p>
+                      </div>
+                    )}
+                    
                     <div className="flex gap-2">
                       <Button
-                        variant="secondary"
+                        variant="danger"
                         size="sm"
                         onClick={confirmDelete}
-                        className="bg-red-600 hover:bg-red-700 text-white border-red-600 flex-1"
+                        className="flex-1"
                       >
                         确认删除
                       </Button>
                       <Button
-                        variant="secondary"
+                        variant="outline"
                         size="sm"
                         onClick={() => setShowDeleteConfirm(null)}
                         className="flex-1"
@@ -990,6 +1025,175 @@ export function ServicesPage() {
           </div>
         </>
       )}
+
+      {/* 工具详情弹窗 */}
+      {selectedTool && (() => {
+        console.log('[Modal] Rendering tool detail:', selectedTool.name);
+        return (
+          <div 
+            className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4"
+            onClick={(e) => {
+              // 点击背景关闭
+              if (e.target === e.currentTarget) {
+                console.log('[Modal] Background clicked, closing');
+                setSelectedTool(null);
+              }
+            }}
+          >
+            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            {/* 标题栏 */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <Wrench className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {selectedTool.name}
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedTool(null);
+                }}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500 dark:text-slate-400" />
+              </button>
+            </div>
+
+            {/* 内容区 */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* 描述 */}
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-1 block">
+                  描述
+                </label>
+                <p className="text-sm text-gray-600 dark:text-slate-400">
+                  {selectedTool.description || '无描述'}
+                </p>
+              </div>
+
+              {/* 参数列表 */}
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-2 block">
+                  参数 ({Object.keys(selectedTool.parameters || {}).length})
+                </label>
+                {Object.keys(selectedTool.parameters || {}).length > 0 ? (
+                  <div className="space-y-3">
+                    {Object.entries(selectedTool.parameters).map(([key, param]) => (
+                      <div
+                        key={key}
+                        className="p-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-mono font-semibold text-gray-900 dark:text-white">
+                            {key}
+                          </span>
+                          {param.required && (
+                            <Badge className="text-[9px] bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20">
+                              必填
+                            </Badge>
+                          )}
+                          <Badge className="text-[9px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
+                            {param.type}
+                          </Badge>
+                        </div>
+                        {param.description && (
+                          <p className="text-xs text-gray-600 dark:text-slate-400 mb-2">
+                            {param.description}
+                          </p>
+                        )}
+                        {param.enum && (
+                          <div className="text-xs text-gray-500 dark:text-slate-500">
+                            <span className="font-medium">可选值:</span>{' '}
+                            <span className="font-mono">{JSON.stringify(param.enum)}</span>
+                          </div>
+                        )}
+                        {param.default !== undefined && (
+                          <div className="text-xs text-gray-500 dark:text-slate-500">
+                            <span className="font-medium">默认值:</span>{' '}
+                            <span className="font-mono">{JSON.stringify(param.default)}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-slate-500 italic">无参数</p>
+                )}
+              </div>
+
+              {/* JSON Schema */}
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-2 block">
+                  完整定义 (JSON)
+                </label>
+                <pre className="text-xs bg-gray-900 dark:bg-black text-gray-100 p-3 rounded-lg overflow-x-auto">
+                  <code>{JSON.stringify(selectedTool, null, 2)}</code>
+                </pre>
+              </div>
+            </div>
+
+            {/* 底部按钮 */}
+            <div className="p-4 border-t border-gray-200 dark:border-slate-800 flex justify-end">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setSelectedTool(null);
+                }}
+              >
+                关闭
+              </Button>
+            </div>
+          </div>
+        </div>
+        );
+      })()}
     </div>
+  );
+}
+
+// 工具列表组件
+function ToolsList({ serviceId, onToolClick }: { serviceId: string; onToolClick: (tool: Tool) => void }) {
+  const { data: serviceDetail } = useService(serviceId);
+  const tools = serviceDetail?.tools || [];
+  const [expanded, setExpanded] = useState(false);
+
+  if (tools.length === 0) {
+    return <span className="text-[11px] text-gray-400 dark:text-slate-500 italic">暂无工具</span>;
+  }
+
+  const displayTools = expanded ? tools : tools.slice(0, 10);
+
+  return (
+    <>
+      {displayTools.map((tool, idx) => (
+        <button
+          key={`${serviceId}-${tool.name}-${idx}`}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToolClick(tool);
+          }}
+          className="text-[10px] px-2 py-0.5 bg-primary-500/5 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300 border border-primary-500/20 hover:bg-primary-500/10 dark:hover:bg-primary-500/20 transition-colors cursor-pointer rounded-md inline-flex items-center gap-1"
+          title="点击查看详情"
+        >
+          <Wrench className="w-2.5 h-2.5" />
+          {tool.name}
+        </button>
+      ))}
+      {tools.length > 10 && (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setExpanded(!expanded);
+          }}
+          className="text-[10px] px-2 py-0.5 bg-gray-500/5 dark:bg-slate-500/10 text-gray-600 dark:text-slate-400 border border-gray-500/20 hover:bg-gray-500/10 dark:hover:bg-slate-500/20 transition-colors cursor-pointer rounded-md inline-flex items-center gap-1"
+          title={expanded ? '收起' : '展开全部'}
+        >
+          {expanded ? '收起' : `+${tools.length - 10} 更多`}
+        </button>
+      )}
+    </>
   );
 }

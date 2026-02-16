@@ -37,6 +37,7 @@ export abstract class BaseServiceAdapter implements IMCPService {
       status: this.status,
       serverInfo: this.initResult?.serverInfo,
       capabilities: this.initResult?.capabilities,
+      toolCount: this.tools?.tools?.length,
     };
   }
 

@@ -393,6 +393,10 @@ export class XiaozhiConnection extends EventEmitter {
       search_files: {
         keyword: 'pattern',  // xiaozhi sends 'keyword', tool expects 'pattern'
       },
+      control: {
+        device_id: 'entity_id',  // xiaozhi sends 'device_id', tool expects 'entity_id'
+        action: 'command',       // xiaozhi sends 'action', tool expects 'command'
+      },
       // Add more tool-specific mappings here if needed
     };
 

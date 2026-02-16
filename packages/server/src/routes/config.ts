@@ -240,4 +240,74 @@ app.patch('/preferences', async (c) => {
   }
 });
 
+// ==================== MCP Proxy Management ====================
+
+// GET /api/config/mcp-proxy - Get MCP proxy configuration
+app.get('/mcp-proxy', async (c) => {
+  try {
+    const agent = await getAgent();
+    const webConfig = agent.getWebConfigManager();
+    
+    if (!webConfig) {
+      return c.json({ error: 'Web config manager not initialized' }, 500);
+    }
+
+    const mcpProxy = webConfig.getMcpProxy();
+    return c.json({ mcpProxy });
+  } catch (error: any) {
+    console.error('Get MCP proxy config error:', error);
+    return c.json({ error: error.message || 'Failed to get MCP proxy config' }, 500);
+  }
+});
+
+// PATCH /api/config/mcp-proxy - Update MCP proxy configuration
+app.patch('/mcp-proxy', async (c) => {
+  try {
+    const agent = await getAgent();
+    const webConfig = agent.getWebConfigManager();
+    
+    if (!webConfig) {
+      return c.json({ error: 'Web config manager not initialized' }, 500);
+    }
+
+    const updates = await c.req.json();
+    await webConfig.updateMcpProxy(updates);
+
+    return c.json({ 
+      success: true, 
+      message: 'MCP proxy configuration updated',
+    });
+  } catch (error: any) {
+    console.error('Update MCP proxy config error:', error);
+    return c.json({ error: error.message || 'Failed to update MCP proxy config' }, 500);
+  }
+});
+
+// POST /api/config/mcp-proxy/generate-token - Generate a random token
+app.post('/mcp-proxy/generate-token', async (c) => {
+  try {
+    const agent = await getAgent();
+    const webConfig = agent.getWebConfigManager();
+    
+    if (!webConfig) {
+      return c.json({ error: 'Web config manager not initialized' }, 500);
+    }
+
+    // Generate a secure random token
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    await webConfig.updateMcpProxy({ token });
+
+    return c.json({ 
+      success: true, 
+      token,
+    });
+  } catch (error: any) {
+    console.error('Generate token error:', error);
+    return c.json({ error: error.message || 'Failed to generate token' }, 500);
+  }
+});
+
 export default app;

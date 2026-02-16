@@ -5,6 +5,7 @@
  */
 
 export interface MCPServerConfig {
+  type?: 'stdio' | 'sse' | 'http';
   command: string;
   args?: string[];
   env?: Record<string, string>;
@@ -15,6 +16,8 @@ export interface MCPServersConfig {
   mcpServers?: Record<string, MCPServerConfig>;
   // VS Code 格式
   servers?: Record<string, MCPServerConfig>;
+  // VS Code 设置格式（带点号的键）
+  'mcp.servers'?: Record<string, MCPServerConfig>;
 }
 
 export interface ParseResult {
@@ -121,6 +124,23 @@ function extractSSEUrl(config: MCPServerConfig): string | undefined {
 }
 
 /**
+ * 检测字符串中是否包含 VS Code 变量
+ */
+function hasVSCodeVariables(value: string): boolean {
+  return /\$\{[^}]+\}/.test(value);
+}
+
+/**
+ * 处理 VS Code 变量（目前仅记录警告）
+ */
+function replaceVSCodeVariables(value: string): string {
+  if (hasVSCodeVariables(value)) {
+    console.warn('⚠️ 检测到 VS Code 变量，需要手动替换:', value);
+  }
+  return value;
+}
+
+/**
  * 解析 MCP 配置 JSON
  */
 export function parseMCPConfig(jsonString: string): ParseResult {
@@ -133,6 +153,9 @@ export function parseMCPConfig(jsonString: string): ParseResult {
     if (config.mcpServers) {
       // Claude Desktop 格式
       serversObject = config.mcpServers;
+    } else if (config['mcp.servers']) {
+      // VS Code 设置格式（带点号）
+      serversObject = config['mcp.servers'];
     } else if (config.servers) {
       // VS Code 格式
       serversObject = config.servers;
@@ -172,6 +195,14 @@ export function parseMCPConfig(jsonString: string): ParseResult {
           continue; // 跳过无命令的配置
         }
 
+        // 检测 args 中的 VS Code 变量
+        const args = serverConfig.args || [];
+        const hasVariables = args.some(arg => hasVSCodeVariables(arg));
+        
+        if (hasVariables) {
+          console.warn(`⚠️ 服务 "${id}" 的参数包含 VS Code 变量，导入后需要手动编辑配置文件替换为实际路径`);
+        }
+
         services.push({
           id,
           type: 'stdio' as const,
@@ -179,7 +210,7 @@ export function parseMCPConfig(jsonString: string): ParseResult {
           description,
           enabled: false,
           command: serverConfig.command,
-          args: serverConfig.args || [],
+          args: args.map(replaceVSCodeVariables),
           env: serverConfig.env || undefined,
         });
       }
