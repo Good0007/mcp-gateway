@@ -35,6 +35,8 @@
 - ✅ **代理管理界面** - Token 生成、状态监控
 - ✅ **类型定义统一** - shared 包单一数据源
 - ✅ **Monorepo 优化** - 构建流程、依赖管理
+- ✅ **Docker 支持** - Dockerfile、docker-compose、镜像构建
+- ✅ **部署文档** - 完整的 Docker 部署指南
 
 ---
 
@@ -81,9 +83,10 @@
 - [ ] **审计日志** - 操作记录和审计
 
 #### 部署增强
-- [ ] **Docker 容器化** - 一键部署镜像
+- ✅ **Docker 容器化** - Dockerfile + docker-compose（已完成）
 - [ ] **k8s 编排** - Helm Chart 支持
 - [ ] **环境隔离** - Dev/Staging/Prod 环境管理
+- [ ] **CI/CD 流水线** - 自动化构建和部署
 
 ### v0.7.0 - 高级功能 (ETA: 2026-05)
 

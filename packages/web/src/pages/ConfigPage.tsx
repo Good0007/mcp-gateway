@@ -50,7 +50,7 @@ export function ConfigPage() {
   const fetchProxyStatus = async () => {
     setProxyLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/mcp/status');
+      const response = await fetch('/mcp/status');
       if (response.ok) {
         const data = await response.json();
         setProxyStatus(data);
@@ -605,7 +605,7 @@ export function ConfigPage() {
                   servers: {
                     "mcp-agent": {
                       type: "sse",
-                      url: "http://localhost:3001/mcp/sse",
+                      url: `${window.location.origin}/mcp/sse`,
                       ...(proxyConfig?.token ? { headers: { Authorization: `Bearer ${proxyConfig?.token}` } } : {}),
                     },
                   },
@@ -618,7 +618,7 @@ export function ConfigPage() {
                       servers: {
                         "mcp-agent": {
                           type: "sse",
-                          url: "http://localhost:3001/mcp/sse",
+                          url: `${window.location.origin}/mcp/sse`,
                           ...(proxyConfig?.token ? { headers: { Authorization: `Bearer ${proxyConfig?.token}` } } : {}),
                         },
                       },
@@ -671,7 +671,7 @@ export function ConfigPage() {
                 <code>{JSON.stringify({
                   mcpServers: {
                     "mcp-agent": {
-                      url: "http://localhost:3001/mcp/sse",
+                      url: `${window.location.origin}/mcp/sse`,
                       ...(proxyConfig?.token ? { headers: { Authorization: `Bearer ${proxyConfig?.token}` } } : {}),
                     },
                   },
@@ -683,7 +683,7 @@ export function ConfigPage() {
                     const config = {
                       mcpServers: {
                         "mcp-agent": {
-                          url: "http://localhost:3001/mcp/sse",
+                          url: `${window.location.origin}/mcp/sse`,
                           ...(proxyConfig?.token ? { headers: { Authorization: `Bearer ${proxyConfig?.token}` } } : {}),
                         },
                       },

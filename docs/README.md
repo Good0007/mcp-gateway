@@ -10,7 +10,8 @@
 
 1. **[项目介绍](../README.md)** - 了解 MCP Agent 是什么
 2. **[快速上手](../QUICKSTART.md)** - 3 分钟启动服务
-3. **[多服务集成指南](MULTI_SERVICES.md)** - 添加和配置 MCP 服务
+3. **[Docker 部署](DOCKER.md)** - 使用 Docker 快速部署（推荐生产环境）
+4. **[多服务集成指南](MULTI_SERVICES.md)** - 添加和配置 MCP 服务
 
 ### 🏗️ 架构文档
 
@@ -36,6 +37,7 @@
 | **README** | 根目录 | 所有人 | 项目介绍、特性、快速命令 |
 | **QUICKSTART** | 根目录 | 新用户 | 安装、启动、基本配置 |
 | **ARCHITECTURE** | 根目录 | 开发者 | Monorepo 架构、依赖关系、构建流程 |
+| **DOCKER** | docs/ | 运维/用户 | Docker 部署指南、故障排查 |
 | **MULTI_SERVICES** | docs/ | 用户 | 多服务配置示例（stdio/sse/http/embedded） |
 | **MCP-PROXY-SERVER** | docs/ | 开发者/用户 | MCP 代理功能、VS Code/Claude 配置 |
 | **ROADMAP** | docs/ | 开发者 | 功能规划、待办事项 |
@@ -99,6 +101,14 @@ bun run dev
 
 ### 如何在 VS Code 中使用？
 
+
+### 如何使用 Docker 部署？
+
+查看 [DOCKER.md](DOCKER.md) 获取完整的 Docker 部署指南，快速开始：
+
+```bash
+docker-compose up -d
+```
 配置 `.vscode/mcp.json`，参考 [MCP-PROXY-SERVER.md](MCP-PROXY-SERVER.md)。
 
 ### 如何修改代码并贡献？

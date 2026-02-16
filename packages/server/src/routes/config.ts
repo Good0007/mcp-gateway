@@ -70,29 +70,39 @@ app.get('/export', async (c) => {
 
 // POST /api/config/import - Import configuration from JSON
 app.post('/import', async (c) => {
+  console.log('[CONFIG] Import request received');
   try {
     const agent = await getAgent();
     const webConfig = agent.getWebConfigManager();
     
     if (!webConfig) {
+      console.error('[CONFIG] Web config manager not initialized');
       return c.json({ error: 'Web config manager not initialized' }, 500);
     }
 
     const body = await c.req.json<{ content: string }>();
+    console.log('[CONFIG] Request body received, content length:', body.content?.length || 0);
     
     if (!body.content) {
+      console.error('[CONFIG] Missing configuration content');
       return c.json({ error: 'Missing configuration content' }, 400);
     }
 
+    console.log('[CONFIG] Importing configuration...');
     await webConfig.importConfig(body.content);
+    console.log('[CONFIG] Configuration imported successfully');
 
     return c.json({ 
       success: true, 
       message: 'Configuration imported successfully' 
     });
   } catch (error: any) {
-    console.error('Import config error:', error);
-    return c.json({ error: error.message || 'Failed to import configuration' }, 500);
+    console.error('[CONFIG] Import config error:', error);
+    console.error('[CONFIG] Error stack:', error.stack);
+    return c.json({ 
+      error: error.message || 'Failed to import configuration',
+      details: error.stack 
+    }, 500);
   }
 });
 

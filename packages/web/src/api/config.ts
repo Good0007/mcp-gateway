@@ -8,7 +8,10 @@ import type {
   XiaozhiEndpoint,
 } from '@mcp-agent/shared';
 
-const API_BASE = 'http://localhost:3001/api';
+// 使用相对路径，支持生产环境和开发环境
+// 生产环境：前后端在同一端口，直接使用 /api
+// 开发环境：通过 Vite proxy 代理到后端端口
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 /**
  * Get full web configuration

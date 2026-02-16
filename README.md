@@ -26,6 +26,24 @@ bun run dev
 
 启动后访问 `http://localhost:5174` 即可使用。
 
+### 生产部署（Docker）
+
+```bash
+# 使用 Docker Compose（推荐）
+docker-compose up -d
+
+# 或使用 Docker 命令
+docker build -t mcp-agent:latest .
+docker run -d -p 3000:3000 mcp-agent:latest
+
+# 或使用 Make 命令（最简单）
+make up
+```
+
+详细部署指南：
+- 🚀 [Docker 快速开始](./DOCKER_QUICKSTART.md)
+- 📚 [完整部署文档](./docs/DOCKER.md)
+
 ### 其他命令
 
 ```bash
@@ -98,4 +116,6 @@ mcp-agent/
 ## 📖 更多资源
 
 - [QUICKSTART.md](./QUICKSTART.md) - 详细快速开始指南
-- [docs/](./docs/) - 架构、规范等详细文档
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - 项目架构和最佳实践
+- [docs/DOCKER.md](./docs/DOCKER.md) - Docker 部署指南
+- [docs/](./docs/) - 完整文档目录
