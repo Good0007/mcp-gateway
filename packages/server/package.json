@@ -7,11 +7,9 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "dev:full": "concurrently -n \"server,web\" -c \"blue,green\" \"npm run dev\" \"npm run dev:web\"",
-    "dev:web": "cd ../web && npm run dev",
+    "dev:full": "concurrently -n \"server,web\" -c \"blue,green\" \"bun run dev\" \"cd ../web && bun run dev\"",
     "build": "tsc",
-    "build:full": "npm run build && cd ../web && npm run build && npm run copy:web",
-    "copy:web": "mkdir -p public && cp -r ../web/dist/* public/",
+    "postbuild": "mkdir -p public && cp -r ../web/dist/* public/ 2>/dev/null || true",
     "start": "NODE_ENV=production node dist/index.js",
     "clean": "rm -rf dist public",
     "typecheck": "tsc --noEmit"

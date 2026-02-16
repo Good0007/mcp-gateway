@@ -386,6 +386,7 @@ app.get('/status', async (c) => {
       transports: ['streamable-http', 'sse'],
       endpoints: { sse: '/mcp/sse' },
       stats: {
+        activeSessions: streamableSessions.size + legacySessions.size,
         httpSessions: streamableSessions.size,
         sseSessions: legacySessions.size,
         totalTools: tools.length,

@@ -33,9 +33,13 @@ serve({
   console.log('   POST   /api/config/endpoints/:id/select');
   console.log('   GET    /api/config/preferences');
   console.log('   PATCH  /api/config/preferences');
+  console.log('   GET    /api/config/mcp-proxy');
+  console.log('   PATCH  /api/config/mcp-proxy');
+  console.log('   POST   /api/config/mcp-proxy/generate-token');
   console.log('');
   console.log('🔌 MCP Proxy endpoints (for external MCP clients):');
-  console.log('   GET    /mcp/sse          - SSE transport endpoint');
-  console.log('   POST   /mcp/message      - Client message endpoint');
+  console.log('   POST   /mcp/sse          - Streamable HTTP endpoint');
+  console.log('   GET    /mcp/sse          - Legacy SSE transport');
+  console.log('   DELETE /mcp/sse          - Close session');
   console.log('   GET    /mcp/status       - Proxy status');
 });

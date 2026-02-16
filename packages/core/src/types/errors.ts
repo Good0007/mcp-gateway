@@ -1,46 +1,13 @@
 /**
  * Error Type Definitions
- * Centralized error handling with error codes
+ * Re-exports shared error codes + core-specific error classes
  */
 
-/**
- * Error codes for MCP Agent
- */
-export enum ErrorCode {
-  // Configuration errors (1xxx)
-  CONFIG_INVALID = 'CONFIG_INVALID',
-  CONFIG_NOT_FOUND = 'CONFIG_NOT_FOUND',
-  CONFIG_PARSE_ERROR = 'CONFIG_PARSE_ERROR',
-  
-  // Service errors (2xxx)
-  SERVICE_NOT_FOUND = 'SERVICE_NOT_FOUND',
-  SERVICE_START_FAILED = 'SERVICE_START_FAILED',
-  SERVICE_STOP_FAILED = 'SERVICE_STOP_FAILED',
-  SERVICE_ALREADY_RUNNING = 'SERVICE_ALREADY_RUNNING',
-  SERVICE_NOT_RUNNING = 'SERVICE_NOT_RUNNING',
-  SERVICE_INITIALIZATION_FAILED = 'SERVICE_INITIALIZATION_FAILED',
-  SERVICE_TIMEOUT = 'SERVICE_TIMEOUT',
-  
-  // Tool errors (3xxx)
-  TOOL_NOT_FOUND = 'TOOL_NOT_FOUND',
-  TOOL_CALL_FAILED = 'TOOL_CALL_FAILED',
-  TOOL_INVALID_ARGUMENTS = 'TOOL_INVALID_ARGUMENTS',
-  TOOL_RESULT_TOO_LARGE = 'TOOL_RESULT_TOO_LARGE',
-  
-  // Connection errors (4xxx)
-  CONNECTION_FAILED = 'CONNECTION_FAILED',
-  CONNECTION_LOST = 'CONNECTION_LOST',
-  CONNECTION_TIMEOUT = 'CONNECTION_TIMEOUT',
-  
-  // Protocol errors (5xxx)
-  PROTOCOL_ERROR = 'PROTOCOL_ERROR',
-  INVALID_MESSAGE = 'INVALID_MESSAGE',
-  UNSUPPORTED_OPERATION = 'UNSUPPORTED_OPERATION',
-  
-  // Internal errors (9xxx)
-  INTERNAL_ERROR = 'INTERNAL_ERROR',
-  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
-}
+// Re-export error codes and response types from shared package
+export { ErrorCode, type ErrorResponse } from '@mcp-agent/shared';
+
+// Import for use in this file
+import { ErrorCode } from '@mcp-agent/shared';
 
 /**
  * Base error class for MCP Agent

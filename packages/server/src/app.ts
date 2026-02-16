@@ -6,6 +6,9 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { serveStatic } from '@hono/node-server/serve-static';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
 import statusRoutes from './routes/status.js';
 import servicesRoutes from './routes/services.js';
 import toolsRoutes from './routes/tools.js';
@@ -14,6 +17,10 @@ import configRoutes from './routes/config.js';
 import logsRoutes from './routes/logs.js';
 import environmentRoutes from './routes/environment.js';
 import mcpProxyRoutes from './routes/mcp-proxy.js';
+
+// Resolve public dir relative to this file (dist/app.js -> ../public)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const publicDir = path.resolve(__dirname, '../public');
 
 const app = new Hono();
 
@@ -41,8 +48,13 @@ app.route('/mcp', mcpProxyRoutes);
 
 // Serve static files in production (built web app)
 if (process.env.NODE_ENV === 'production') {
-  app.use('/*', serveStatic({ root: './public' }));
-  app.get('*', serveStatic({ path: './public/index.html' }));
+  if (fs.existsSync(publicDir)) {
+    app.use('/*', serveStatic({ root: publicDir }));
+    app.get('*', serveStatic({ path: path.join(publicDir, 'index.html') }));
+  } else {
+    console.warn(`⚠️  前端静态文件目录不存在: ${publicDir}`);
+    console.warn('   请运行 "npm run build:full" 或 "bun run build:full" 构建完整应用');
+  }
 }
 
 // 404 handler
