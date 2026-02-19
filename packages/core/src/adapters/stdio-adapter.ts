@@ -110,14 +110,14 @@ export class StdioServiceAdapter extends BaseServiceAdapter {
       let suggestion = '';
 
       // Check for common error patterns
-      if (error.code === 'ENOENT' || errorMessage.includes('ENOENT')) {
-        errorMessage = `命令未找到: ${config.command}`;
-        suggestion = this.getCommandNotFoundSuggestion(config.command);
-      } else if (error.code === 'EACCES' || errorMessage.includes('EACCES')) {
+      if (error.code === 'EACCES' || errorMessage.includes('EACCES')) {
         errorMessage = `权限被拒绝: ${config.command}`;
         suggestion = `请检查命令是否有执行权限，或尝试: chmod +x ${config.command}`;
       } else if (errorMessage.includes('spawn') && errorMessage.includes('ENOENT')) {
         errorMessage = `无法启动进程: ${config.command}`;
+        suggestion = this.getCommandNotFoundSuggestion(config.command);
+      } else if (error.code === 'ENOENT' || errorMessage.includes('ENOENT')) {
+        errorMessage = `命令未找到: ${config.command}`;
         suggestion = this.getCommandNotFoundSuggestion(config.command);
       } else if (errorMessage.includes('连接超时')) {
         suggestion = '服务启动时间过长，可能需要：\n1. 检查命令和参数是否正确\n2. 检查服务是否需要安装依赖\n3. 查看服务日志获取详细错误信息';

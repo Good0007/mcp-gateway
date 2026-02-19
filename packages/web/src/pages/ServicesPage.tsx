@@ -6,15 +6,17 @@ import { useServices, useStartService, useStopService, useDeleteService, useAddS
 import { Loader, Play, Square, AlertCircle, Settings, Plus, Trash2, PlayCircle, StopCircle, X, Edit, Upload, CheckCircle2, Wrench } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { MCPServiceStatus, Tool } from '@mcp-agent/shared';
-import { parseMCPConfig } from '@/utils/mcpConfigParser';
+import { parseMCPConfig } from '@/utils/mcp-config-parser';
 import { toast } from 'sonner';
+import { useTranslation } from '@/hooks/useI18n';
 
 function StatusBadge({ status }: { status: MCPServiceStatus }) {
+  const { t } = useTranslation();
   const variants: Record<MCPServiceStatus, { label: string; color: string }> = {
-    running: { label: '运行中', color: 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' },
-    stopped: { label: '已停止', color: 'bg-gray-500/10 dark:bg-slate-500/20 text-gray-600 dark:text-slate-400 border-gray-500/20' },
-    starting: { label: '启动中', color: 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/20' },
-    error: { label: '错误', color: 'bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/20' },
+    running: { label: t('services.status.running'), color: 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' },
+    stopped: { label: t('services.status.stopped'), color: 'bg-gray-500/10 dark:bg-slate-500/20 text-gray-600 dark:text-slate-400 border-gray-500/20' },
+    starting: { label: t('services.status.starting'), color: 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/20' },
+    error: { label: t('services.status.error'), color: 'bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/20' },
   };
 
   const variant = variants[status] || variants.stopped;
@@ -26,6 +28,7 @@ function StatusBadge({ status }: { status: MCPServiceStatus }) {
 }
 
 export function ServicesPage() {
+  const { t } = useTranslation();
   const { data: servicesData, isLoading, error } = useServices();
   const services = servicesData?.services || [];
   const startService = useStartService();
@@ -101,12 +104,12 @@ export function ServicesPage() {
   const handleStart = async (serviceId: string) => {
     try {
       await startService.mutateAsync(serviceId);
-      toast.success('服务启动成功');
+      toast.success(t('services.toast.start_success'));
     } catch (err: any) {
-      console.error('启动服务失败:', err);
-      // 显示友好的错误信息给用户
-      const errorMsg = err?.response?.data?.error || err?.message || '启动服务失败，请检查服务配置';
-      toast.error('启动失败', {
+      console.error('Failed to start service:', err);
+      // Show friendly error message
+      const errorMsg = err?.response?.data?.error || err?.message || t('services.toast.start_fail_desc');
+      toast.error(t('services.toast.start_fail'), {
         description: errorMsg,
         duration: 6000,
       });
@@ -116,27 +119,27 @@ export function ServicesPage() {
   const handleStop = async (serviceId: string) => {
     try {
       await stopService.mutateAsync(serviceId);
-      toast.success('服务已停止');
+      toast.success(t('services.toast.stop_success'));
     } catch (err: any) {
-      console.error('停止服务失败:', err);
-      // 显示友好的错误信息给用户
-      const errorMsg = err?.response?.data?.error || err?.message || '停止服务失败';
-      toast.error('停止失败', {
+      console.error('Failed to stop service:', err);
+      // Show friendly error message
+      const errorMsg = err?.response?.data?.error || err?.message || t('services.toast.stop_fail');
+      toast.error(t('services.toast.stop_fail_title'), {
         description: errorMsg,
       });
     }
   };
 
   const handleEdit = (serviceId: string) => {
-    // 设置编辑 ID 并打开弹窗
+    // Set edit ID and open modal
     setEditingServiceId(serviceId);
     setShowServiceModal(true);
-    // useEffect 会处理数据加载和表单填充
+    // useEffect will handle data loading and form filling
   };
 
   const handleAddService = async () => {
     try {
-      // 构建服务配置对象
+      // Build service config object
       const serviceConfig: any = {
         id: serviceForm.id.trim(),
         type: serviceForm.type,
@@ -145,49 +148,49 @@ export function ServicesPage() {
         enabled: false,
       };
 
-      // 根据类型添加特定配置
+      // Add specific config based on type
       if (serviceForm.type === 'stdio') {
         serviceConfig.command = serviceForm.command.trim();
-        // 将空格分隔的参数字符串转换为数组
+        // Convert space-separated args to array
         if (serviceForm.args.trim()) {
           serviceConfig.args = serviceForm.args.trim().split(/\s+/);
         }
         if (serviceForm.cwd.trim()) {
           serviceConfig.cwd = serviceForm.cwd.trim();
         }
-        // 解析 env JSON
+        // Parse env JSON
         if (serviceForm.env.trim()) {
           try {
             serviceConfig.env = JSON.parse(serviceForm.env);
           } catch (e) {
-            toast.error('格式错误', {
-              description: '环境变量格式错误，请输入有效的 JSON 格式',
+            toast.error(t('services.toast.format_error'), {
+              description: t('services.toast.env_format_error'),
             });
             return;
           }
         }
       } else if (serviceForm.type === 'sse') {
         serviceConfig.url = serviceForm.url.trim();
-        // 解析 headers JSON
+        // Parse headers JSON
         if (serviceForm.headers.trim()) {
           try {
             serviceConfig.headers = JSON.parse(serviceForm.headers);
           } catch (e) {
-            toast.error('格式错误', {
-              description: 'Headers 格式错误，请输入有效的 JSON 格式',
+            toast.error(t('services.toast.format_error'), {
+              description: t('services.toast.headers_format_error'),
             });
             return;
           }
         }
       } else if (serviceForm.type === 'http') {
         serviceConfig.baseUrl = serviceForm.baseUrl.trim();
-        // 解析 headers JSON
+        // Parse headers JSON
         if (serviceForm.headers.trim()) {
           try {
             serviceConfig.headers = JSON.parse(serviceForm.headers);
           } catch (e) {
-            toast.error('格式错误', {
-              description: 'Headers 格式错误，请输入有效的 JSON 格式',
+            toast.error(t('services.toast.format_error'), {
+              description: t('services.toast.headers_format_error'),
             });
             return;
           }
@@ -195,22 +198,22 @@ export function ServicesPage() {
       }
 
       if (editingServiceId) {
-        // 编辑模式
+        // Edit mode
         await updateService.mutateAsync({ id: editingServiceId, updates: serviceConfig });
-        toast.success('服务更新成功');
+        toast.success(t('services.toast.update_success'));
       } else {
-        // 添加模式
+        // Add mode
         await addService.mutateAsync(serviceConfig);
-        toast.success('服务添加成功');
+        toast.success(t('services.toast.add_success'));
       }
       
       setShowServiceModal(false);
       resetForm();
     } catch (err: any) {
-      console.error('保存服务失败:', err);
-      // 显示友好的错误信息
-      const errorMsg = err.message || '保存服务失败，请检查配置';
-      toast.error('保存失败', {
+      console.error('Failed to save service:', err);
+      // Show friendly error message
+      const errorMsg = err.message || t('services.toast.save_fail');
+      toast.error(t('services.toast.save_fail_title'), {
         description: errorMsg,
       });
     }
@@ -248,13 +251,13 @@ export function ServicesPage() {
     if (showDeleteConfirm) {
       try {
         await deleteService.mutateAsync(showDeleteConfirm.id);
-        toast.success('服务删除成功');
+        toast.success(t('services.toast.delete_success'));
         setShowDeleteConfirm(null);
       } catch (err) {
-        console.error('删除服务失败:', err);
-        // 显示友好的错误消息
-        const errorMsg = err instanceof Error ? err.message : '删除服务失败';
-        toast.error('删除失败', {
+        console.error('Failed to delete service:', err);
+        // Show friendly error message
+        const errorMsg = err instanceof Error ? err.message : t('services.toast.delete_fail');
+        toast.error(t('services.toast.delete_fail_title'), {
           description: errorMsg,
         });
         setShowDeleteConfirm(null);
@@ -265,7 +268,7 @@ export function ServicesPage() {
   // 解析导入的配置
   const handleParseImport = () => {
     if (!importJson.trim()) {
-      setImportStatus({ type: 'error', message: '请粘贴 MCP 配置 JSON' });
+      setImportStatus({ type: 'error', message: t('services.import.paste_json') });
       return;
     }
 
@@ -281,13 +284,13 @@ export function ServicesPage() {
 
       setImportStatus({ 
         type: 'success', 
-        message: `解析成功！找到 ${result.services?.length} 个服务`,
+        message: t('services.import.parse_success', { count: result.services?.length || 0 }),
         preview: result.services 
       });
     } catch (error) {
       setImportStatus({ 
         type: 'error', 
-        message: error instanceof Error ? error.message : '解析失败' 
+        message: error instanceof Error ? error.message : t('services.import.parse_fail') 
       });
     }
   };
@@ -308,13 +311,13 @@ export function ServicesPage() {
         success++;
       } catch (error) {
         failed++;
-        errors.push(`${service.id}: ${error instanceof Error ? error.message : '未知错误'}`);
+        errors.push(`${service.id}: ${error instanceof Error ? error.message : t('services.error.unknown')}`);
       }
     }
 
     setImportStatus({ 
       type: 'success',
-      message: `导入完成：${success} 个成功, ${failed} 个失败`,
+      message: t('services.import.complete', { success, failed }),
       result: { success, failed, errors }
     });
 
@@ -333,7 +336,7 @@ export function ServicesPage() {
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-3">
           <Loader className="w-8 h-8 animate-spin text-primary-500" />
-          <p className="text-sm text-gray-500 dark:text-slate-500">加载服务列表中...</p>
+          <p className="text-sm text-gray-500 dark:text-slate-500">{t('services.loading')}</p>
         </div>
       </div>
     );
@@ -344,9 +347,9 @@ export function ServicesPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center space-y-2">
           <AlertCircle className="w-10 h-10 text-red-500 mx-auto" />
-          <p className="text-sm text-red-500">加载服务失败</p>
+          <p className="text-sm text-red-500">{t('services.error.load_fail')}</p>
           <p className="text-xs text-gray-500 dark:text-slate-500">
-            {error instanceof Error ? error.message : '未知错误'}
+            {error instanceof Error ? error.message : t('services.error.unknown')}
           </p>
         </div>
       </div>
@@ -361,19 +364,19 @@ export function ServicesPage() {
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-gray-400 dark:bg-slate-600"></div>
             <span className="text-xs text-gray-600 dark:text-slate-400">
-              总数: <span className="font-semibold text-gray-900 dark:text-white">{services.length}</span>
+              {t('services.stats.total')} <span className="font-semibold text-gray-900 dark:text-white">{services.length}</span>
             </span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
             <span className="text-xs text-gray-600 dark:text-slate-400">
-              运行: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{services.filter(s => s.status === 'running').length}</span>
+              {t('services.stats.running')} <span className="font-semibold text-emerald-600 dark:text-emerald-400">{services.filter(s => s.status === 'running').length}</span>
             </span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-gray-400 dark:bg-slate-600"></div>
             <span className="text-xs text-gray-600 dark:text-slate-400">
-              停止: <span className="font-semibold text-gray-600 dark:text-slate-400">{services.filter(s => s.status === 'stopped').length}</span>
+              {t('services.stats.stopped')} <span className="font-semibold text-gray-600 dark:text-slate-400">{services.filter(s => s.status === 'stopped').length}</span>
             </span>
           </div>
         </div>
@@ -385,7 +388,7 @@ export function ServicesPage() {
             className="gap-2"
           >
             <Upload className="w-4 h-4" />
-            导入配置
+            {t('services.button.import')}
           </Button>
           <Button
             variant="primary"
@@ -397,7 +400,7 @@ export function ServicesPage() {
             className="gap-2"
           >
             <Plus className="w-4 h-4" />
-            添加服务
+            {t('services.button.add')}
           </Button>
         </div>
       </div>
@@ -407,9 +410,9 @@ export function ServicesPage() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center space-y-2">
             <Settings className="w-10 h-10 text-gray-400 dark:text-slate-600 mx-auto" />
-            <p className="text-sm text-gray-500 dark:text-slate-500">暂无配置的服务</p>
+            <p className="text-sm text-gray-500 dark:text-slate-500">{t('services.empty.title')}</p>
             <p className="text-xs text-gray-400 dark:text-slate-600">
-              点击上方按钮添加服务或在配置文件中配置
+              {t('services.empty.desc')}
             </p>
           </div>
         </div>
@@ -442,15 +445,15 @@ export function ServicesPage() {
                     </div>
                     
                     <p className="text-xs text-gray-500 dark:text-slate-500 mb-2 line-clamp-2">
-                      {service.description || '无描述'}
+                      {service.description || t('services.desc.none')}
                     </p>
 
                     <div className="flex items-center gap-4 text-[11px] text-gray-400 dark:text-slate-600">
                       {service.serverInfo?.version && (
-                        <span>版本: {service.serverInfo.version}</span>
+                        <span>{t('services.version')} {service.serverInfo.version}</span>
                       )}
                       {service.toolCount !== undefined && (
-                        <span>工具数: {service.toolCount}</span>
+                        <span>{t('services.tool_count')} {service.toolCount}</span>
                       )}
                     </div>
 
@@ -458,7 +461,7 @@ export function ServicesPage() {
                     {service.status === 'running' && (
                       <div className="mt-3">
                         <div className="flex flex-wrap gap-1.5 items-center">
-                          <span className="text-[11px] text-gray-500 dark:text-slate-500 mr-1">工具:</span>
+                          <span className="text-[11px] text-gray-500 dark:text-slate-500 mr-1">{t('services.tools')}</span>
                           <ToolsList serviceId={service.id} onToolClick={(tool) => {
                             setSelectedTool(tool);
                           }} />
@@ -471,7 +474,7 @@ export function ServicesPage() {
                         <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">
-                            启动错误
+                            {t('services.error.start_error')}
                           </p>
                           <p className="text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap break-words">
                             {service.error}
@@ -487,8 +490,8 @@ export function ServicesPage() {
                       <button
                         onClick={() => handleStop(service.id)}
                         disabled={stopService.isPending}
-                        className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-red-500/50 dark:hover:border-red-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="停止服务"
+                        className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-red-500/50 dark:hover:border-red-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        title={t('services.button.stop_tooltip')}
                       >
                         {stopService.isPending ? (
                           <Loader className="w-4 h-4 animate-spin text-gray-500" />
@@ -500,8 +503,8 @@ export function ServicesPage() {
                       <button
                         onClick={() => handleStart(service.id)}
                         disabled={startService.isPending || service.status === 'starting'}
-                        className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-emerald-500/50 dark:hover:border-emerald-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="启动服务"
+                        className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-emerald-500/50 dark:hover:border-emerald-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        title={t('services.button.start_tooltip')}
                       >
                         {startService.isPending || service.status === 'starting' ? (
                           <Loader className="w-4 h-4 animate-spin text-gray-500" />
@@ -512,15 +515,15 @@ export function ServicesPage() {
                     )}
                     <button
                       onClick={() => handleEdit(service.id)}
-                      className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-colors"
-                      title="编辑服务"
+                      className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-colors cursor-pointer"
+                      title={t('services.button.edit_tooltip')}
                     >
                       <Edit className="w-4 h-4 text-gray-500 dark:text-slate-400" />
                     </button>
                     <button
                       onClick={() => handleDeleteService(service.id)}
-                      className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-500/50 dark:hover:border-red-500/50 transition-colors"
-                      title="删除服务"
+                      className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-500/50 dark:hover:border-red-500/50 transition-colors cursor-pointer"
+                      title={t('services.button.delete_tooltip')}
                     >
                       <Trash2 className="w-4 h-4 text-gray-500 dark:text-slate-400" />
                     </button>
@@ -549,14 +552,14 @@ export function ServicesPage() {
             <Card className="dark:bg-slate-900 dark:border-slate-800 border-primary-500/30 shadow-2xl">
               <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <CardTitle className="text-base font-semibold text-gray-900 dark:text-white">
-                  {editingServiceId ? '编辑服务' : '添加新服务'}
+                  {editingServiceId ? t('services.modal.edit_title') : t('services.modal.add_title')}
                 </CardTitle>
                 <button
                   onClick={() => {
                     setShowServiceModal(false);
                     resetForm();
                   }}
-                  className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                  className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4 text-gray-500 dark:text-slate-400" />
                 </button>
@@ -564,39 +567,39 @@ export function ServicesPage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
-                    label="服务 ID"
-                    placeholder="例如：calculator"
+                    label={t('services.form.id')}
+                    placeholder={t('services.form.id_placeholder')}
                     value={serviceForm.id}
                     onChange={(e) => setServiceForm({ ...serviceForm, id: e.target.value })}
                     disabled={!!editingServiceId}
                   />
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-gray-700 dark:text-slate-300">
-                      服务类型
+                      {t('services.form.type')}
                     </label>
                     <select
                       value={serviceForm.type}
                       onChange={(e) => setServiceForm({ ...serviceForm, type: e.target.value as any })}
                       className="w-full h-10 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 text-sm text-gray-900 dark:text-white"
                     >
-                      <option value="stdio">Stdio (命令行)</option>
-                      <option value="sse">SSE (Server-Sent Events)</option>
-                      <option value="http">HTTP (REST API)</option>
-                      <option value="embedded">Embedded (内嵌模块)</option>
+                      <option value="stdio">{t('services.type.stdio')}</option>
+                      <option value="sse">{t('services.type.sse')}</option>
+                      <option value="http">{t('services.type.http')}</option>
+                      <option value="embedded">{t('services.type.embedded')}</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
-                    label="服务名称"
-                    placeholder="例如：Calculator Service"
+                    label={t('services.form.name')}
+                    placeholder={t('services.form.name_placeholder')}
                     value={serviceForm.name}
                     onChange={(e) => setServiceForm({ ...serviceForm, name: e.target.value })}
                   />
                   <Input
-                    label="服务描述"
-                    placeholder="例如：基础算术运算"
+                    label={t('services.form.desc')}
+                    placeholder={t('services.form.desc_placeholder')}
                     value={serviceForm.description}
                     onChange={(e) => setServiceForm({ ...serviceForm, description: e.target.value })}
                   />
@@ -605,29 +608,29 @@ export function ServicesPage() {
                 {/* Stdio 类型配置 */}
                 {serviceForm.type === 'stdio' && (
                   <div className="space-y-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-500/20">
-                    <h4 className="text-xs font-semibold text-gray-900 dark:text-white">Stdio 配置</h4>
+                    <h4 className="text-xs font-semibold text-gray-900 dark:text-white">{t('services.config.stdio')}</h4>
                     <div className="grid grid-cols-1 gap-4">
                       <Input
-                        label="启动命令"
-                        placeholder="例如：npx"
+                        label={t('services.form.command')}
+                        placeholder={t('services.form.command_placeholder')}
                         value={serviceForm.command}
                         onChange={(e) => setServiceForm({ ...serviceForm, command: e.target.value })}
                       />
                       <Input
-                        label="命令参数（用空格分隔）"
-                        placeholder="例如：-y @modelcontextprotocol/server-calculator"
+                        label={t('services.form.args')}
+                        placeholder={t('services.form.args_placeholder')}
                         value={serviceForm.args}
                         onChange={(e) => setServiceForm({ ...serviceForm, args: e.target.value })}
                       />
                       <Input
-                        label="工作目录（可选）"
-                        placeholder="例如：/Users/username"
+                        label={t('services.form.cwd')}
+                        placeholder={t('services.form.cwd_placeholder')}
                         value={serviceForm.cwd}
                         onChange={(e) => setServiceForm({ ...serviceForm, cwd: e.target.value })}
                       />
                       <div className="space-y-2">
                         <label className="text-xs font-medium text-gray-700 dark:text-slate-300">
-                          环境变量（可选，JSON 格式）
+                          {t('services.form.env')}
                         </label>
                         <textarea
                           value={serviceForm.env}
@@ -643,21 +646,21 @@ export function ServicesPage() {
                 {/* SSE 类型配置 */}
                 {serviceForm.type === 'sse' && (
                   <div className="space-y-4 p-4 rounded-lg bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-500/20">
-                    <h4 className="text-xs font-semibold text-gray-900 dark:text-white">SSE 配置</h4>
+                    <h4 className="text-xs font-semibold text-gray-900 dark:text-white">{t('services.config.sse')}</h4>
                     <Input
-                      label="端点 URL"
-                      placeholder="例如：http://localhost:8931/sse"
+                      label={t('services.form.url')}
+                      placeholder={t('services.form.url_placeholder')}
                       value={serviceForm.url}
                       onChange={(e) => setServiceForm({ ...serviceForm, url: e.target.value })}
                     />
                     <div className="space-y-2">
                       <label className="text-xs font-medium text-gray-700 dark:text-slate-300">
-                        请求头 Headers（可选，JSON 格式）
+                        {t('services.form.headers')}
                       </label>
                       <textarea
                         value={serviceForm.headers}
                         onChange={(e) => setServiceForm({ ...serviceForm, headers: e.target.value })}
-                        placeholder='例如：{"Authorization": "Bearer token"}'
+                        placeholder={t('services.form.headers_placeholder')}
                         className="w-full min-h-[80px] rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-slate-500 font-mono resize-none"
                       />
                     </div>
@@ -667,21 +670,21 @@ export function ServicesPage() {
                 {/* HTTP 类型配置 */}
                 {serviceForm.type === 'http' && (
                   <div className="space-y-4 p-4 rounded-lg bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-500/20">
-                    <h4 className="text-xs font-semibold text-gray-900 dark:text-white">HTTP 配置</h4>
+                    <h4 className="text-xs font-semibold text-gray-900 dark:text-white">{t('services.config.http')}</h4>
                     <Input
-                      label="Base URL"
-                      placeholder="例如：http://localhost:4000/mcp"
+                      label={t('services.form.base_url')}
+                      placeholder={t('services.form.base_url_placeholder')}
                       value={serviceForm.baseUrl}
                       onChange={(e) => setServiceForm({ ...serviceForm, baseUrl: e.target.value })}
                     />
                     <div className="space-y-2">
                       <label className="text-xs font-medium text-gray-700 dark:text-slate-300">
-                        请求头 Headers（可选，JSON 格式）
+                        {t('services.form.headers')}
                       </label>
                       <textarea
                         value={serviceForm.headers}
                         onChange={(e) => setServiceForm({ ...serviceForm, headers: e.target.value })}
-                        placeholder='例如：{"Authorization": "Bearer token"}'
+                        placeholder={t('services.form.headers_placeholder')}
                         className="w-full min-h-[80px] rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-slate-500 font-mono resize-none"
                       />
                     </div>
@@ -699,10 +702,10 @@ export function ServicesPage() {
                     {(addService.isPending || updateService.isPending) ? (
                       <>
                         <Loader className="w-4 h-4 animate-spin" />
-                        {editingServiceId ? '保存中...' : '添加中...'}
+                        {editingServiceId ? t('services.button.saving') : t('services.button.adding')}
                       </>
                     ) : (
-                      editingServiceId ? '保存更改' : '添加服务'
+                      editingServiceId ? t('services.button.save') : t('services.button.add_confirm')
                     )}
                   </Button>
                   <Button
@@ -715,11 +718,11 @@ export function ServicesPage() {
                     disabled={addService.isPending || updateService.isPending}
                     className="flex-1"
                   >
-                    取消
+                    {t('services.button.cancel')}
                   </Button>
                 </div>
                 <p className="text-[11px] text-gray-500 dark:text-slate-500 text-center">
-                  💡 {editingServiceId ? '保存后如果服务正在运行将自动重启' : '添加后服务不会自动启动，需要手动启动'}
+                  💡 {editingServiceId ? t('services.tip.save_restart') : t('services.tip.add_manual_start')}
                 </p>
               </CardContent>
             </Card>
@@ -746,16 +749,17 @@ export function ServicesPage() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
-                      确认删除服务
+                      {t('services.modal.delete_title')}
                     </h3>
-                    <p className="text-sm text-gray-700 dark:text-slate-300 mb-4">
-                      确定要删除服务 <span className="font-semibold text-red-600 dark:text-red-500">{showDeleteConfirm.name}</span> 吗？此操作无法撤销。
-                    </p>
+                    <p 
+                      className="text-sm text-gray-700 dark:text-slate-300 mb-4"
+                      dangerouslySetInnerHTML={{ __html: t('services.modal.delete_confirm', { name: showDeleteConfirm.name }) }}
+                    />
                     
                     {showDeleteConfirm.type === 'stdio' && (
                       <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-md">
                         <p className="text-xs text-blue-900 dark:text-blue-300">
-                          💡 该服务通过 stdio 方式安装。删除后，其安装的依赖环境（如 npm 包）仍将保留在系统中。如需完全卸载，请手动运行相关卸载命令。
+                          💡 {t('services.modal.delete_stdio_tip')}
                         </p>
                       </div>
                     )}
@@ -767,7 +771,7 @@ export function ServicesPage() {
                         onClick={confirmDelete}
                         className="flex-1"
                       >
-                        确认删除
+                        {t('services.button.delete_confirm')}
                       </Button>
                       <Button
                         variant="outline"
@@ -775,7 +779,7 @@ export function ServicesPage() {
                         onClick={() => setShowDeleteConfirm(null)}
                         className="flex-1"
                       >
-                        取消
+                        {t('services.button.cancel')}
                       </Button>
                     </div>
                   </div>
@@ -807,10 +811,10 @@ export function ServicesPage() {
               <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <div>
                   <CardTitle className="text-base font-semibold text-gray-900 dark:text-white">
-                    导入 MCP 服务配置
+                    {t('services.import.title')}
                   </CardTitle>
                   <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">
-                    支持 Claude Desktop 和 VS Code 的 MCP 配置格式
+                    {t('services.import.subtitle')}
                   </p>
                 </div>
                 <button
@@ -831,7 +835,7 @@ export function ServicesPage() {
                 {/* JSON 输入区 */}
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-gray-700 dark:text-slate-300">
-                    粘贴配置 JSON
+                    {t('services.import.paste_label')}
                   </label>
                   <textarea
                     value={importJson}
@@ -884,7 +888,7 @@ export function ServicesPage() {
                 {importStatus.preview && importStatus.preview.length > 0 && (
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-gray-700 dark:text-slate-300">
-                      将导入以下服务：
+                      {t('services.import.preview_label')}
                     </label>
                     <div className="max-h-[200px] overflow-y-auto space-y-2 border border-gray-200 dark:border-slate-700 rounded-lg p-3">
                       {importStatus.preview.map((service, idx) => (
@@ -908,55 +912,69 @@ export function ServicesPage() {
                 {/* 导入结果 */}
                 {importStatus.result && (
                   <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-500/20">
-                        <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                          {importStatus.result.success}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-500/20">
+                          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                            {importStatus.result.success}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-slate-400">{t('services.import.success_label')}</div>
                         </div>
-                        <div className="text-xs text-gray-600 dark:text-slate-400">导入成功</div>
-                      </div>
-                      <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-500/20">
-                        <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                          {importStatus.result.failed}
+                        <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-500/20">
+                          <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                            {importStatus.result.failed}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-slate-400">{t('services.import.fail_label')}</div>
                         </div>
-                        <div className="text-xs text-gray-600 dark:text-slate-400">导入失败</div>
                       </div>
+                      {importStatus.result.errors.length > 0 && (
+                        <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-500/20">
+                          <div className="text-xs font-semibold text-red-600 dark:text-red-400 mb-2">{t('services.import.error_details')}</div>
+                          <div className="space-y-1 max-h-[100px] overflow-y-auto">
+                            {importStatus.result.errors.map((error, idx) => (
+                              <div key={idx} className="text-xs text-red-600 dark:text-red-400 font-mono">
+                                {error}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    {importStatus.result.errors.length > 0 && (
-                      <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-500/20">
-                        <div className="text-xs font-semibold text-red-600 dark:text-red-400 mb-2">错误详情：</div>
-                        <div className="space-y-1 max-h-[100px] overflow-y-auto">
-                          {importStatus.result.errors.map((error, idx) => (
-                            <div key={idx} className="text-xs text-red-600 dark:text-red-400 font-mono">
-                              {error}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
 
-                {/* 操作按钮 */}
-                <div className="flex gap-2 pt-2">
-                  {!importStatus.preview ? (
-                    <>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={handleParseImport}
-                        disabled={!importJson.trim() || importStatus.type === 'parsing'}
-                        className="flex-1 gap-2"
-                      >
-                        {importStatus.type === 'parsing' ? (
-                          <>
-                            <Loader className="w-4 h-4 animate-spin" />
-                            解析中...
-                          </>
-                        ) : (
-                          '解析配置'
-                        )}
-                      </Button>
+                  {/* 操作按钮 */}
+                  <div className="flex gap-2 pt-2">
+                    {!importStatus.preview ? (
+                      <>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={handleParseImport}
+                          disabled={!importJson.trim() || importStatus.type === 'parsing'}
+                          className="flex-1 gap-2"
+                        >
+                          {importStatus.type === 'parsing' ? (
+                            <>
+                              <Loader className="w-4 h-4 animate-spin" />
+                              {t('services.button.parsing')}
+                            </>
+                          ) : (
+                            t('services.button.parse')
+                          )}
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            setShowImportModal(false);
+                            setImportJson('');
+                            setImportStatus({ type: 'idle' });
+                          }}
+                          className="flex-1"
+                        >
+                          {t('services.button.cancel')}
+                        </Button>
+                      </>
+                    ) : importStatus.result ? (
                       <Button
                         variant="secondary"
                         size="sm"
@@ -967,64 +985,50 @@ export function ServicesPage() {
                         }}
                         className="flex-1"
                       >
-                        取消
+                        {t('services.button.close')}
                       </Button>
-                    </>
-                  ) : importStatus.result ? (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        setShowImportModal(false);
-                        setImportJson('');
-                        setImportStatus({ type: 'idle' });
-                      }}
-                      className="flex-1"
-                    >
-                      关闭
-                    </Button>
-                  ) : (
-                    <>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={handleConfirmImport}
-                        disabled={importStatus.type === 'importing'}
-                        className="flex-1 gap-2"
-                      >
-                        {importStatus.type === 'importing' ? (
-                          <>
-                            <Loader className="w-4 h-4 animate-spin" />
-                            导入中...
-                          </>
-                        ) : (
-                          `确认导入 ${importStatus.preview.length} 个服务`
-                        )}
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          setImportJson('');
-                          setImportStatus({ type: 'idle' });
-                        }}
-                        disabled={importStatus.type === 'importing'}
-                        className="flex-1"
-                      >
-                        重新粘贴
-                      </Button>
-                    </>
-                  )}
-                </div>
+                    ) : (
+                      <>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={handleConfirmImport}
+                          disabled={importStatus.type === 'importing'}
+                          className="flex-1 gap-2"
+                        >
+                          {importStatus.type === 'importing' ? (
+                            <>
+                              <Loader className="w-4 h-4 animate-spin" />
+                              {t('services.button.importing')}
+                            </>
+                          ) : (
+                            t('services.button.import_confirm', { count: importStatus.preview.length })
+                          )}
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            setImportJson('');
+                            setImportStatus({ type: 'idle' });
+                          }}
+                          disabled={importStatus.type === 'importing'}
+                          className="flex-1"
+                        >
+                          {t('services.button.repaste')}
+                        </Button>
+                      </>
+                    )}
+                  </div>
 
-                <p className="text-[11px] text-gray-500 dark:text-slate-500 text-center">
-                  💡 支持从 Claude Desktop 或 VS Code 的 MCP 配置文件中复制 JSON
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </>
-      )}
+                  <p className="text-[11px] text-gray-500 dark:text-slate-500 text-center">
+                    💡 {t('services.import.tip')}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
 
       {/* 工具详情弹窗 */}
       {selectedTool && (() => {
@@ -1064,17 +1068,17 @@ export function ServicesPage() {
               {/* 描述 */}
               <div>
                 <label className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-1 block">
-                  描述
+                  {t('services.tool.description')}
                 </label>
                 <p className="text-sm text-gray-600 dark:text-slate-400">
-                  {selectedTool.description || '无描述'}
+                  {selectedTool.description || t('services.desc.none')}
                 </p>
               </div>
 
               {/* 参数列表 */}
               <div>
                 <label className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-2 block">
-                  参数 ({Object.keys(selectedTool.parameters || {}).length})
+                  {t('services.tool.params', { count: Object.keys(selectedTool.parameters || {}).length })}
                 </label>
                 {Object.keys(selectedTool.parameters || {}).length > 0 ? (
                   <div className="space-y-3">
@@ -1089,7 +1093,7 @@ export function ServicesPage() {
                           </span>
                           {param.required && (
                             <Badge className="text-[9px] bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20">
-                              必填
+                              {t('services.tool.required')}
                             </Badge>
                           )}
                           <Badge className="text-[9px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
@@ -1103,13 +1107,13 @@ export function ServicesPage() {
                         )}
                         {param.enum && (
                           <div className="text-xs text-gray-500 dark:text-slate-500">
-                            <span className="font-medium">可选值:</span>{' '}
+                            <span className="font-medium">{t('services.tool.enum')}</span>{' '}
                             <span className="font-mono">{JSON.stringify(param.enum)}</span>
                           </div>
                         )}
                         {param.default !== undefined && (
                           <div className="text-xs text-gray-500 dark:text-slate-500">
-                            <span className="font-medium">默认值:</span>{' '}
+                            <span className="font-medium">{t('services.tool.default')}</span>{' '}
                             <span className="font-mono">{JSON.stringify(param.default)}</span>
                           </div>
                         )}
@@ -1117,14 +1121,14 @@ export function ServicesPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 dark:text-slate-500 italic">无参数</p>
+                  <p className="text-sm text-gray-500 dark:text-slate-500 italic">{t('services.tool.no_params')}</p>
                 )}
               </div>
 
               {/* JSON Schema */}
               <div>
                 <label className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-2 block">
-                  完整定义 (JSON)
+                  {t('services.tool.full_def')}
                 </label>
                 <pre className="text-xs bg-gray-900 dark:bg-black text-gray-100 p-3 rounded-lg overflow-x-auto">
                   <code>{JSON.stringify(selectedTool, null, 2)}</code>
@@ -1141,7 +1145,7 @@ export function ServicesPage() {
                   setSelectedTool(null);
                 }}
               >
-                关闭
+                {t('services.button.close')}
               </Button>
             </div>
           </div>
@@ -1154,12 +1158,13 @@ export function ServicesPage() {
 
 // 工具列表组件
 function ToolsList({ serviceId, onToolClick }: { serviceId: string; onToolClick: (tool: Tool) => void }) {
+  const { t } = useTranslation();
   const { data: serviceDetail } = useService(serviceId);
   const tools = serviceDetail?.tools || [];
   const [expanded, setExpanded] = useState(false);
 
   if (tools.length === 0) {
-    return <span className="text-[11px] text-gray-400 dark:text-slate-500 italic">暂无工具</span>;
+    return <span className="text-[11px] text-gray-400 dark:text-slate-500 italic">{t('services.tool.empty')}</span>;
   }
 
   const displayTools = expanded ? tools : tools.slice(0, 10);
@@ -1175,7 +1180,7 @@ function ToolsList({ serviceId, onToolClick }: { serviceId: string; onToolClick:
             onToolClick(tool);
           }}
           className="text-[10px] px-2 py-0.5 bg-primary-500/5 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300 border border-primary-500/20 hover:bg-primary-500/10 dark:hover:bg-primary-500/20 transition-colors cursor-pointer rounded-md inline-flex items-center gap-1"
-          title="点击查看详情"
+          title={t('services.tool.click_detail')}
         >
           <Wrench className="w-2.5 h-2.5" />
           {tool.name}
@@ -1189,9 +1194,9 @@ function ToolsList({ serviceId, onToolClick }: { serviceId: string; onToolClick:
             setExpanded(!expanded);
           }}
           className="text-[10px] px-2 py-0.5 bg-gray-500/5 dark:bg-slate-500/10 text-gray-600 dark:text-slate-400 border border-gray-500/20 hover:bg-gray-500/10 dark:hover:bg-slate-500/20 transition-colors cursor-pointer rounded-md inline-flex items-center gap-1"
-          title={expanded ? '收起' : '展开全部'}
+          title={expanded ? t('services.tool.collapse') : t('services.tool.expand')}
         >
-          {expanded ? '收起' : `+${tools.length - 10} 更多`}
+          {expanded ? t('services.tool.collapse') : t('services.tool.more', { count: tools.length - 10 })}
         </button>
       )}
     </>

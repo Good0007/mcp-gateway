@@ -130,7 +130,7 @@ export const agentApi = {
         level: 'error' | 'warn' | 'info' | 'debug';
         message: string;
         service?: string;
-        meta?: Record<string, any>;
+        meta?: Record<string, unknown>;
       }>;
       total: number;
       bufferSize: number;

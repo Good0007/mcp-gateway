@@ -93,7 +93,7 @@ async function checkCommand(command: string): Promise<{ installed: boolean; vers
     const { stdout } = await execAsync(command, { timeout: 5000 });
     const version = stdout.trim();
     return { installed: true, version };
-  } catch (error) {
+  } catch {
     return { installed: false };
   }
 }

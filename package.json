@@ -1,7 +1,7 @@
 {
   "name": "mcp-agent-monorepo",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "MCP Agent Monorepo",
   "workspaces": ["packages/*"],
   "scripts": {
@@ -20,7 +20,12 @@
     "start": "cd packages/server && bun run start",
     "clean": "bun run --filter '*' clean",
     "typecheck": "bun run --filter '*' typecheck",
-    "test": "bun run --filter '*' test"
+    "test": "bun run --filter '*' test",
+    "fix:shared": "bun x eslint packages/shared/src --fix",
+    "fix:core": "bun x eslint packages/core/src --fix",
+    "fix:server": "bun x eslint packages/server/src --fix",
+    "fix:web": "bun x eslint packages/web/src --fix",
+    "fix:cli": "bun x eslint packages/cli/src --fix"
   },
   "keywords": [
     "mcp",
@@ -32,8 +37,12 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "dotenv": "^17.3.1",
-    "typescript": "~5.7.3"
+    "eslint": "^10.0.0",
+    "globals": "^17.3.0",
+    "typescript": "~5.7.3",
+    "typescript-eslint": "^8.56.0"
   },
   "engines": {
     "node": ">=18.0.0"

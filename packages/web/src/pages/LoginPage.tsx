@@ -5,12 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Lock, User, Loader2 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { Logo } from '@/components/Logo';
+import { useTranslation } from '@/hooks/useI18n';
 
 interface LoginPageProps {
   onLogin: (username: string, password: string) => Promise<boolean>;
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -19,7 +21,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     e.preventDefault();
 
     if (!username.trim() || !password.trim()) {
-      toast.error('请输入用户名和密码');
+      toast.error(t('login.toast.empty'));
       return;
     }
 
@@ -27,10 +29,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     try {
       const success = await onLogin(username, password);
       if (!success) {
-        toast.error('用户名或密码错误');
+        toast.error(t('login.toast.error'));
       }
     } catch (error) {
-      toast.error('登录失败，请稍后重试');
+      toast.error(t('login.toast.fail'));
       console.error('Login error:', error);
     } finally {
       setIsLoading(false);
@@ -49,7 +51,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             MCP Agent
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            请登录以继续使用
+            {t('login.subtitle')}
           </p>
         </div>
 
@@ -57,7 +59,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         <Card className="shadow-xl border-gray-200 dark:border-slate-800">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-2xl font-semibold text-center">
-              登录
+              {t('login.title')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -65,13 +67,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               {/* Username Input */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  用户名
+                  {t('login.username')}
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <Input
                     type="text"
-                    placeholder="请输入用户名"
+                    placeholder={t('login.username.placeholder')}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     disabled={isLoading}
@@ -85,13 +87,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               {/* Password Input */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  密码
+                  {t('login.password')}
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <Input
                     type="password"
-                    placeholder="请输入密码"
+                    placeholder={t('login.password.placeholder')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isLoading}
@@ -110,10 +112,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    登录中...
+                    {t('login.logging_in')}
                   </>
                 ) : (
-                  '登录'
+                  t('login.button')
                 )}
               </Button>
             </form>

@@ -5,12 +5,18 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAgentStatus, useTools, useServices } from '@/hooks/useAgent';
 import { useEndpoints, useAddEndpoint, useRemoveEndpoint, useSelectEndpoint } from '@/hooks/useWebConfig';
+import { useTranslation } from '@/hooks/useI18n';
 import { Loader, CheckCircle2, XCircle, RefreshCw, Zap, Wrench, Settings, Loader2, Plus, Trash2, ExternalLink, ChevronDown, Play, Square, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from '@/lib/toast';
 import type { Tool } from '@mcp-agent/shared';
 
+interface ToolWithService extends Tool {
+  serviceId?: string;
+}
+
 export function XiaozhiPage() {
+  const { t, language } = useTranslation();
   const { data: status, isLoading, error, refetch } = useAgentStatus();
   const { data: tools } = useTools();
   const { data: servicesData, isLoading: servicesLoading } = useServices();
@@ -35,7 +41,7 @@ export function XiaozhiPage() {
   // 添加新端点
   const handleAddEndpoint = async () => {
     if (!newEndpointName.trim() || !newEndpointUrl.trim()) {
-      toast.error('请填写完整的端点信息');
+      toast.error(t('xiaozhi.toast.fill_endpoint_info'));
       return;
     }
 
@@ -50,9 +56,9 @@ export function XiaozhiPage() {
       setNewEndpointName('');
       setNewEndpointUrl('');
       
-      toast.success('端点添加成功');
-    } catch (error: any) {
-      toast.error(error.message || '添加端点失败');
+      toast.success(t('xiaozhi.toast.endpoint_added'));
+    } catch (error) {
+      toast.error((error instanceof Error ? error.message : String(error)) || t('xiaozhi.toast.add_failed'));
     }
   };
 
@@ -60,9 +66,9 @@ export function XiaozhiPage() {
   const handleDeleteEndpoint = async (id: string) => {
     try {
       await removeEndpointMutation.mutateAsync(id);
-      toast.success('端点删除成功');
-    } catch (error: any) {
-      toast.error(error.message || '删除端点失败');
+      toast.success(t('xiaozhi.toast.endpoint_deleted'));
+    } catch (error) {
+      toast.error((error instanceof Error ? error.message : String(error)) || t('xiaozhi.toast.delete_failed'));
     }
   };
 
@@ -72,17 +78,17 @@ export function XiaozhiPage() {
     
     try {
       await selectEndpointMutation.mutateAsync(id);
-      toast.success('端点切换成功');
+      toast.success(t('xiaozhi.toast.endpoint_switched'));
       
       // 刷新连接状态
       refetch();
-    } catch (error: any) {
-      toast.error(error.message || '切换端点失败');
+    } catch (error) {
+      toast.error((error instanceof Error ? error.message : String(error)) || t('xiaozhi.toast.switch_failed'));
     }
   };
 
   const handleReconnect = async () => {
-    console.log('重连 Xiaozhi 服务');
+    console.log('Reconnecting Xiaozhi service');
     refetch();
   };
 
@@ -92,7 +98,7 @@ export function XiaozhiPage() {
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-3">
           <Loader className="w-8 h-8 animate-spin text-primary-500" />
-          <p className="text-sm text-gray-500 dark:text-slate-500">加载连接状态...</p>
+          <p className="text-sm text-gray-500 dark:text-slate-500">{t('xiaozhi.loading.connection')}</p>
         </div>
       </div>
     );
@@ -103,9 +109,9 @@ export function XiaozhiPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center space-y-2">
           <XCircle className="w-10 h-10 text-red-500 mx-auto" />
-          <p className="text-sm text-red-500">加载状态失败</p>
+          <p className="text-sm text-red-500">{t('xiaozhi.error.load_status')}</p>
           <p className="text-xs text-gray-500 dark:text-slate-500">
-            {error instanceof Error ? error.message : '未知错误'}
+            {error instanceof Error ? error.message : t('xiaozhi.error.unknown')}
           </p>
         </div>
       </div>
@@ -119,14 +125,14 @@ export function XiaozhiPage() {
   const runningServices = services.filter(s => s.status === 'running');
   
   // 按服务分组工具
-  const toolsByService = (tools?.tools || []).reduce((acc, tool) => {
+  const toolsByService = ((tools?.tools || []) as ToolWithService[]).reduce((acc, tool) => {
     const serviceId = tool.serviceId || 'unknown';
     if (!acc[serviceId]) {
       acc[serviceId] = [];
     }
     acc[serviceId].push(tool);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {} as Record<string, ToolWithService[]>);
 
   return (
     <div className="space-y-6">
@@ -135,11 +141,11 @@ export function XiaozhiPage() {
         <TabsList>
           <TabsTrigger value="connection" className="gap-2">
             <CheckCircle2 className="w-4 h-4" />
-            连接状态
+            {t('xiaozhi.tab.connection')}
           </TabsTrigger>
           <TabsTrigger value="endpoints" className="gap-2">
             <Settings className="w-4 h-4" />
-            端点管理
+            {t('xiaozhi.tab.endpoints')}
           </TabsTrigger>
         </TabsList>
 
@@ -159,10 +165,10 @@ export function XiaozhiPage() {
                     )}
                     <div>
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        连接状态
+                        {t('xiaozhi.connection.status')}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-slate-500">
-                        {isConnected ? '已连接到 Xiaozhi 服务' : '未连接'}
+                        {isConnected ? t('xiaozhi.connection.connected') : t('xiaozhi.connection.disconnected')}
                       </p>
                     </div>
                   </div>
@@ -173,7 +179,7 @@ export function XiaozhiPage() {
                         : 'bg-gray-500/10 dark:bg-slate-500/20 text-gray-600 dark:text-slate-400 border-gray-500/20'
                     }`}
                   >
-                    {isConnected ? '已连接' : '未连接'}
+                    {isConnected ? t('xiaozhi.connection.connected_short') : t('xiaozhi.connection.disconnected_short')}
                   </Badge>
                 </div>
 
@@ -181,17 +187,17 @@ export function XiaozhiPage() {
                 {endpoints.length > 0 && (
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-gray-700 dark:text-slate-300">
-                      选择端点
+                      {t('xiaozhi.endpoint.select')}
                     </label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <button
                           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                          className="w-full flex items-center justify-between h-10 px-3.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-primary-500/50 dark:hover:border-primary-500/50 transition-colors text-left"
+                          className="w-full flex items-center justify-between h-10 px-3.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-primary-500/50 dark:hover:border-primary-500/50 transition-colors text-left cursor-pointer"
                         >
                           <span className="text-sm text-gray-900 dark:text-white flex items-center gap-2">
                             <Zap className="w-3.5 h-3.5 text-primary-500" />
-                            {selectedEndpoint?.name || '选择端点'}
+                            {selectedEndpoint?.name || t('xiaozhi.endpoint.select_placeholder')}
                           </span>
                           <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
@@ -202,7 +208,7 @@ export function XiaozhiPage() {
                               <button
                                 key={endpoint.id}
                                 onClick={() => handleSwitchEndpoint(endpoint.id)}
-                                className={`w-full flex items-center justify-between px-3.5 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors border-b border-gray-100 dark:border-slate-800 last:border-0 ${
+                                className={`w-full flex items-center justify-between px-3.5 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors border-b border-gray-100 dark:border-slate-800 last:border-0 cursor-pointer ${
                                   selectedEndpointId === endpoint.id ? 'bg-primary-50 dark:bg-primary-900/20' : ''
                                 }`}
                               >
@@ -231,11 +237,11 @@ export function XiaozhiPage() {
                         ) : (
                           <RefreshCw className="w-3.5 h-3.5" />
                         )}
-                        切换并重连
+                        {t('xiaozhi.endpoint.switch_reconnect')}
                       </Button>
                     </div>
                     <p className="text-[11px] text-gray-500 dark:text-slate-500">
-                      选择端点后点击按钮切换连接
+                      {t('xiaozhi.endpoint.switch_hint')}
                     </p>
                   </div>
                 )}
@@ -248,14 +254,14 @@ export function XiaozhiPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-base font-semibold text-gray-900 dark:text-white">
-                      运行中的服务
+                      {t('xiaozhi.services.running')}
                     </CardTitle>
                     <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">
-                      显示当前运行的服务及其提供的工具
+                      {t('xiaozhi.services.running_desc')}
                     </p>
                   </div>
                   <Badge variant="default" className="text-xs">
-                    {runningServices.length} 个服务
+                    {t('xiaozhi.services.count', { count: runningServices.length })}
                   </Badge>
                 </div>
               </CardHeader>
@@ -264,7 +270,7 @@ export function XiaozhiPage() {
                   <div className="flex items-center justify-center py-12">
                     <div className="flex flex-col items-center gap-3">
                       <Loader2 className="w-6 h-6 animate-spin text-primary-500" />
-                      <p className="text-sm text-gray-500 dark:text-slate-500">加载服务列表...</p>
+                      <p className="text-sm text-gray-500 dark:text-slate-500">{t('xiaozhi.services.loading')}</p>
                     </div>
                   </div>
                 ) : runningServices.length > 0 ? (
@@ -286,11 +292,11 @@ export function XiaozhiPage() {
                                   {service.name}
                                 </h4>
                                 <Badge className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
-                                  运行中
+                                  {t('xiaozhi.services.status.running')}
                                 </Badge>
                               </div>
                               <p className="text-xs text-gray-600 dark:text-slate-400 mb-3">
-                                {service.description || '无描述'}
+                                {service.description || t('xiaozhi.services.no_desc')}
                               </p>
                               {/* 工具标签 */}
                               <ServiceToolsList 
@@ -307,10 +313,10 @@ export function XiaozhiPage() {
                   <div className="text-center py-12">
                     <Square className="w-10 h-10 text-gray-300 dark:text-slate-700 mx-auto mb-3" />
                     <p className="text-sm text-gray-500 dark:text-slate-400">
-                      暂无运行中的服务
+                      {t('xiaozhi.services.empty')}
                     </p>
                     <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
-                      请在"服务配置"页面启动服务
+                      {t('xiaozhi.services.empty_hint')}
                     </p>
                   </div>
                 )}
@@ -328,11 +334,10 @@ export function XiaozhiPage() {
                   </div>
                   <div className="flex-1 space-y-1">
                     <h4 className="text-xs font-semibold text-gray-900 dark:text-white">
-                      关于 Xiaozhi 服务
+                      {t('xiaozhi.about.title')}
                     </h4>
                     <p className="text-[11px] text-gray-600 dark:text-slate-400 leading-relaxed">
-                      Xiaozhi 是 MCP Agent 的 AI 对话服务，负责处理用户交互和智能决策。
-                      您可以在"端点管理"标签页中添加多个端点，并在此处快速切换。
+                      {t('xiaozhi.about.desc')}
                     </p>
                   </div>
                 </div>
@@ -343,166 +348,167 @@ export function XiaozhiPage() {
 
         {/* 端点管理标签页 */}
         <TabsContent value="endpoints">
-          <div className="space-y-6">
-            {/* 添加端点表单 */}
-            <Card className="dark:bg-slate-900 dark:border-slate-800">
-              <CardHeader>
-                <CardTitle className="text-base font-semibold text-gray-900 dark:text-white">
-                  添加新端点
-                </CardTitle>
-                <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">
-                  添加 Xiaozhi 服务的访问端点
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    label="端点名称"
-                    placeholder="例如：本地开发环境"
-                    value={newEndpointName}
-                    onChange={(e) => setNewEndpointName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleAddEndpoint();
-                      }
-                    }}
-                  />
-                  <Input
-                    label="端点 URL"
-                    placeholder="例如：http://localhost:3000"
-                    value={newEndpointUrl}
-                    onChange={(e) => setNewEndpointUrl(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleAddEndpoint();
-                      }
-                    }}
-                  />
-                </div>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleAddEndpoint}
-                  disabled={!newEndpointName.trim() || !newEndpointUrl.trim() || addEndpointMutation.isPending}
-                  className="w-full gap-2"
-                >
-                  {addEndpointMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Plus className="w-4 h-4" />
-                  )}
-                  {addEndpointMutation.isPending ? '添加中...' : '添加端点'}
-                </Button>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 左侧：添加端点 */}
+            <div className="space-y-6">
+              <Card className="dark:bg-slate-900 dark:border-slate-800">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-primary-500" />
+                    {t('xiaozhi.endpoint.add.title')}
+                  </CardTitle>
+                  <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">
+                    {t('xiaozhi.endpoint.add.desc')}
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-slate-300">{t('xiaozhi.endpoint.add.name_label')}</label>
+                    <Input
+                      id="name"
+                      placeholder={t('xiaozhi.endpoint.add.name_placeholder')}
+                      value={newEndpointName}
+                      onChange={(e) => setNewEndpointName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="url" className="text-sm font-medium text-gray-700 dark:text-slate-300">{t('xiaozhi.endpoint.add.url_label')}</label>
+                    <Input
+                      id="url"
+                      placeholder={t('xiaozhi.endpoint.add.url_placeholder')}
+                      value={newEndpointUrl}
+                      onChange={(e) => setNewEndpointUrl(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    className="w-full gap-2"
+                    onClick={handleAddEndpoint}
+                    disabled={addEndpointMutation.isPending}
+                  >
+                    {addEndpointMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Plus className="w-4 h-4" />
+                    )}
+                    {addEndpointMutation.isPending ? t('xiaozhi.endpoint.add.button_loading') : t('xiaozhi.endpoint.add.button')}
+                  </Button>
+                </CardContent>
+              </Card>
 
-            {/* 端点列表 */}
-            <Card className="dark:bg-slate-900 dark:border-slate-800">
+              {/* 说明卡片 */}
+              <Card className="bg-primary-50/50 dark:bg-primary-900/10 border-primary-100 dark:border-primary-900/30">
+                <CardContent className="pt-6">
+                  <div className="flex gap-3">
+                    <div className="p-2 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 h-fit">
+                      <Zap className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                        {t('xiaozhi.endpoint.manage_desc.title')}
+                      </h4>
+                      <p className="text-xs text-gray-600 dark:text-slate-400 leading-relaxed">
+                        {t('xiaozhi.endpoint.manage_desc.text')}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* 右侧：端点列表 */}
+            <Card className="h-full dark:bg-slate-900 dark:border-slate-800">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-base font-semibold text-gray-900 dark:text-white">
-                      已保存的端点
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="w-5 h-5 text-primary-500" />
+                      {t('xiaozhi.endpoint.list.title')}
                     </CardTitle>
                     <p className="text-xs text-gray-500 dark:text-slate-500 mt-1">
-                      管理您保存的 Xiaozhi 服务端点
+                      {t('xiaozhi.endpoint.list.desc')}
                     </p>
                   </div>
-                  <Badge variant="default" className="text-xs">
-                    {endpoints.length} 个端点
+                  <Badge variant="default" className="border border-gray-200 dark:border-slate-700 bg-transparent text-gray-900 dark:text-white">
+                    {t('xiaozhi.endpoint.list.count', { count: endpoints.length })}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent>
-                {endpoints.length > 0 ? (
-                  <div className="space-y-2">
-                    {endpoints.map((endpoint) => (
+                <div className="space-y-3">
+                  {endpoints.length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed border-gray-100 dark:border-slate-800 rounded-lg">
+                      <Settings className="w-10 h-10 text-gray-300 dark:text-slate-600 mx-auto mb-3" />
+                      <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                        {t('xiaozhi.endpoint.list.empty')}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-slate-500">
+                        {t('xiaozhi.endpoint.list.empty_hint')}
+                      </p>
+                    </div>
+                  ) : (
+                    endpoints.map((endpoint) => (
                       <div
                         key={endpoint.id}
-                        className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
-                          selectedEndpointId === endpoint.id
-                            ? 'border-primary-500/50 bg-primary-500/5 dark:bg-primary-500/10'
-                            : 'border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
+                        className={`group relative flex items-start justify-between p-4 rounded-lg border transition-all duration-200 ${
+                          endpoint.id === selectedEndpointId
+                            ? 'bg-primary-50/50 dark:bg-primary-900/10 border-primary-200 dark:border-primary-900/30 shadow-sm'
+                            : 'bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 hover:border-gray-200 dark:hover:border-slate-700'
                         }`}
                       >
-                        <div className="flex-1 min-w-0 mr-3">
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-                              {endpoint.name}
-                            </h4>
-                            {selectedEndpointId === endpoint.id && (
-                              <Badge className="text-[10px] bg-primary-500/10 text-primary-600 dark:text-primary-400 border-primary-500/20">
-                                当前使用
-                              </Badge>
-                            )}
+                        <div className="flex gap-3">
+                          <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
+                            endpoint.id === selectedEndpointId
+                              ? 'bg-primary-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+                              : 'bg-gray-300 dark:bg-slate-600'
+                          }`} />
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                                {endpoint.name}
+                              </h4>
+                              {endpoint.id === selectedEndpointId && (
+                                <Badge variant="default" className="text-[10px] h-4 px-1.5 bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">
+                                  {t('xiaozhi.endpoint.list.current')}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-500 font-mono bg-gray-50 dark:bg-slate-800 px-1.5 py-0.5 rounded w-fit">
+                              {endpoint.url}
+                            </div>
+                            <p className="text-[10px] text-gray-400 dark:text-slate-600 pt-1">
+                              {t('xiaozhi.endpoint.list.added_at', { date: new Date(endpoint.createdAt).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US') })}
+                            </p>
                           </div>
-                          <p className="text-xs text-gray-600 dark:text-slate-400 mt-1 font-mono truncate">
-                            {endpoint.url}
-                          </p>
-                          <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-1">
-                            添加于 {new Date(endpoint.createdAt).toLocaleDateString('zh-CN')}
-                          </p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <a
-                            href={endpoint.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
-                            title="在新窗口打开"
-                          >
-                            <ExternalLink className="w-4 h-4 text-gray-500 dark:text-slate-400" />
-                          </a>
+
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button
-                            variant="secondary"
-                            size="sm"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                            onClick={() => window.open(endpoint.url, '_blank')}
+                            title={t('xiaozhi.endpoint.list.open_new_window')}
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                             onClick={() => handleDeleteEndpoint(endpoint.id)}
                             disabled={removeEndpointMutation.isPending}
-                            className="gap-1.5"
+                            title={t('xiaozhi.endpoint.list.delete')}
                           >
                             {removeEndpointMutation.isPending ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             ) : (
                               <Trash2 className="w-3.5 h-3.5" />
                             )}
-                            删除
                           </Button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Settings className="w-10 h-10 text-gray-300 dark:text-slate-700 mx-auto mb-3" />
-                    <p className="text-sm text-gray-500 dark:text-slate-400">
-                      暂无已保存的端点
-                    </p>
-                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
-                      请在上方表单中添加 Xiaozhi 服务端点
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* 使用提示 */}
-            <Card className="dark:bg-slate-900 dark:border-slate-800 border-amber-200/50 dark:border-amber-500/20">
-              <CardContent className="p-4">
-                <div className="flex gap-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center">
-                      <Settings className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                    </div>
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <h4 className="text-xs font-semibold text-gray-900 dark:text-white">
-                      端点管理说明
-                    </h4>
-                    <p className="text-[11px] text-gray-600 dark:text-slate-400 leading-relaxed">
-                      您可以添加多个 Xiaozhi 服务端点（例如本地开发、测试环境、生产环境），
-                      并在"连接状态"标签页中快速切换。端点信息由系统统一管理，支持配置导出备份。
-                    </p>
-                  </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -539,16 +545,16 @@ export function XiaozhiPage() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {/* 描述 */}
               <div>
-                <label className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-1 block">描述</label>
+                <label className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-1 block">{t('xiaozhi.tool.modal.desc')}</label>
                 <p className="text-sm text-gray-600 dark:text-slate-400">
-                  {selectedTool.description || '无描述'}
+                  {selectedTool.description || t('xiaozhi.services.no_desc')}
                 </p>
               </div>
 
               {/* 参数列表 */}
               <div>
                 <label className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-2 block">
-                  参数 ({Object.keys(selectedTool.parameters || {}).length})
+                  {t('xiaozhi.tool.modal.params', { count: Object.keys(selectedTool.parameters || {}).length })}
                 </label>
                 {Object.keys(selectedTool.parameters || {}).length > 0 ? (
                   <div className="space-y-3">
@@ -562,11 +568,11 @@ export function XiaozhiPage() {
                             {key}
                           </span>
                           {param.required && (
-                            <Badge className="text-[9px] bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20">
-                              必填
+                            <Badge variant="default" className="text-[9px] bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20">
+                              {t('xiaozhi.tool.modal.required')}
                             </Badge>
                           )}
-                          <Badge className="text-[9px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
+                          <Badge variant="default" className="text-[9px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
                             {param.type}
                           </Badge>
                         </div>
@@ -577,13 +583,13 @@ export function XiaozhiPage() {
                         )}
                         {param.enum && (
                           <div className="text-xs text-gray-500 dark:text-slate-500">
-                            <span className="font-medium">可选值:</span>{' '}
+                            <span className="font-medium">{t('xiaozhi.tool.modal.optional_values')}</span>{' '}
                             <span className="font-mono">{JSON.stringify(param.enum)}</span>
                           </div>
                         )}
                         {param.default !== undefined && (
                           <div className="text-xs text-gray-500 dark:text-slate-500">
-                            <span className="font-medium">默认值:</span>{' '}
+                            <span className="font-medium">{t('xiaozhi.tool.modal.default_value')}</span>{' '}
                             <span className="font-mono">{JSON.stringify(param.default)}</span>
                           </div>
                         )}
@@ -591,14 +597,14 @@ export function XiaozhiPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 dark:text-slate-500 italic">无参数</p>
+                  <p className="text-sm text-gray-500 dark:text-slate-500 italic">{t('xiaozhi.tool.modal.no_params')}</p>
                 )}
               </div>
 
               {/* JSON Schema */}
               <div>
                 <label className="text-xs font-medium text-gray-700 dark:text-slate-300 mb-2 block">
-                  完整定义 (JSON)
+                  {t('xiaozhi.tool.modal.full_def')}
                 </label>
                 <pre className="text-xs bg-gray-900 dark:bg-black text-gray-100 p-3 rounded-lg overflow-x-auto">
                   <code>{JSON.stringify(selectedTool, null, 2)}</code>
@@ -609,7 +615,7 @@ export function XiaozhiPage() {
             {/* 底部 */}
             <div className="p-4 border-t border-gray-200 dark:border-slate-800 flex justify-end">
               <Button variant="secondary" size="sm" onClick={() => setSelectedTool(null)}>
-                关闭
+                {t('xiaozhi.tool.modal.close')}
               </Button>
             </div>
           </div>
@@ -620,13 +626,14 @@ export function XiaozhiPage() {
 }
 
 // 服务工具列表组件（带展开/折叠）
-function ServiceToolsList({ tools, onToolClick }: { tools: any[]; onToolClick: (tool: Tool) => void }) {
+function ServiceToolsList({ tools, onToolClick }: { tools: ToolWithService[]; onToolClick: (tool: Tool) => void }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
   if (tools.length === 0) {
     return (
       <p className="text-[11px] text-gray-400 dark:text-slate-500 italic">
-        暂无工具
+        {t('xiaozhi.tool.list.empty')}
       </p>
     );
   }
@@ -636,7 +643,7 @@ function ServiceToolsList({ tools, onToolClick }: { tools: any[]; onToolClick: (
   return (
     <div className="flex flex-wrap gap-1.5">
       <span className="text-[11px] text-gray-500 dark:text-slate-500 mr-1">
-        工具:
+        {t('xiaozhi.tool.list.label')}
       </span>
       {displayTools.map((tool, idx) => (
         <button
@@ -661,9 +668,9 @@ function ServiceToolsList({ tools, onToolClick }: { tools: any[]; onToolClick: (
             setExpanded(!expanded);
           }}
           className="text-[10px] px-2 py-0.5 bg-gray-500/5 dark:bg-slate-500/10 text-gray-600 dark:text-slate-400 border border-gray-500/20 hover:bg-gray-500/10 dark:hover:bg-slate-500/20 transition-colors cursor-pointer rounded-md inline-flex items-center gap-1"
-          title={expanded ? '收起' : '展开全部'}
+          title={expanded ? t('xiaozhi.tool.list.collapse') : t('xiaozhi.tool.list.expand')}
         >
-          {expanded ? '收起' : `+${tools.length - 10} 更多`}
+          {expanded ? t('xiaozhi.tool.list.collapse') : t('xiaozhi.tool.list.more', { count: tools.length - 10 })}
         </button>
       )}
     </div>

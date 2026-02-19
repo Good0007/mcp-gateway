@@ -31,7 +31,7 @@ class ApiClient {
     } catch (error) {
       // 网络错误或连接失败
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error('无法连接到服务器，请确保后端服务已启动');
+        throw new Error('无法连接到服务器，请确保后端服务已启动', { cause: error });
       }
       throw error;
     }

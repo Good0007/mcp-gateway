@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Download, Filter, Search, FileText, Trash2, Loader2, RefreshCw } from 'lucide-react';
 import { useLogs, useClearLogs } from '@/hooks/useAgent';
 import { toast } from '@/lib/toast';
+import { useTranslation } from '@/hooks/useI18n';
 
 type LogLevel = 'all' | 'error' | 'warn' | 'info' | 'debug';
 
@@ -26,6 +27,7 @@ function LogLevelBadge({ level }: { level: LogLevel }) {
 }
 
 export function LogsPage() {
+  const { t } = useTranslation();
   const [logLevel, setLogLevel] = useState<LogLevel>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -56,15 +58,15 @@ export function LogsPage() {
     link.download = `mcp-agent-logs-${new Date().toISOString()}.json`;
     link.click();
     URL.revokeObjectURL(url);
-    toast.success('日志已导出');
+    toast.success(t('logs.export.success'));
   };
 
   const handleClearLogs = async () => {
     try {
       await clearLogsMutation.mutateAsync();
-      toast.success('日志已清空');
+      toast.success(t('logs.clear.success'));
     } catch (error: any) {
-      toast.error(error.message || '清空日志失败');
+      toast.error(error.message || t('logs.clear.fail'));
     }
   };
 
@@ -81,7 +83,7 @@ export function LogsPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-600" />
                 <input
                   type="text"
-                  placeholder="搜索日志内容、服务名称..."
+                  placeholder={t('logs.search.placeholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full h-9 pl-10 pr-3.5 rounded-lg border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500/40 transition-all placeholder:text-gray-400 dark:placeholder:text-slate-600"
@@ -96,11 +98,11 @@ export function LogsPage() {
                   onChange={(e) => setLogLevel(e.target.value as LogLevel)}
                   className="h-9 px-3 rounded-lg border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500/40 transition-all"
                 >
-                  <option value="all">所有级别</option>
-                  <option value="error">错误</option>
-                  <option value="warn">警告</option>
-                  <option value="info">信息</option>
-                  <option value="debug">调试</option>
+                  <option value="all">{t('logs.filter.all')}</option>
+                  <option value="error">{t('logs.filter.error')}</option>
+                  <option value="warn">{t('logs.filter.warn')}</option>
+                  <option value="info">{t('logs.filter.info')}</option>
+                  <option value="debug">{t('logs.filter.debug')}</option>
                 </select>
               </div>
             </div>
@@ -115,7 +117,7 @@ export function LogsPage() {
                 className="gap-2"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${autoRefresh ? 'animate-spin' : ''}`} />
-                {autoRefresh ? '自动刷新' : '手动模式'}
+                {autoRefresh ? t('logs.auto_refresh') : t('logs.manual_mode')}
               </Button>
 
               {/* 手动刷新按钮 */}
@@ -127,7 +129,7 @@ export function LogsPage() {
                 disabled={isLoading}
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-                刷新
+                {t('logs.refresh')}
               </Button>
 
               <div className="flex-1" />
@@ -145,7 +147,7 @@ export function LogsPage() {
                 ) : (
                   <Trash2 className="w-3.5 h-3.5" />
                 )}
-                清空
+                {t('logs.clear')}
               </Button>
 
               {/* 导出按钮 */}
@@ -157,7 +159,7 @@ export function LogsPage() {
                 className="gap-2"
               >
                 <Download className="w-3.5 h-3.5" />
-                导出
+                {t('logs.export')}
               </Button>
             </div>
           </div>
@@ -169,9 +171,9 @@ export function LogsPage() {
         <CardHeader className="pb-2">
           <CardTitle className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <FileText className="w-3.5 h-3.5" />
-            系统日志
+            {t('logs.list.title')}
             <span className="text-[10px] font-normal text-gray-500 dark:text-slate-500">
-              （共 {logs.length} 条 / 缓存 {bufferSize} 条）
+              {t('logs.list.count', { count: logs.length, buffer: bufferSize })}
             </span>
           </CardTitle>
         </CardHeader>
@@ -180,25 +182,25 @@ export function LogsPage() {
             <div className="flex items-center justify-center h-48">
               <div className="flex flex-col items-center gap-3">
                 <Loader2 className="w-6 h-6 animate-spin text-primary-500" />
-                <p className="text-sm text-gray-500 dark:text-slate-500">加载日志...</p>
+                <p className="text-sm text-gray-500 dark:text-slate-500">{t('logs.loading')}</p>
               </div>
             </div>
           ) : error ? (
             <div className="flex items-center justify-center h-48">
               <div className="text-center space-y-2">
-                <p className="text-sm text-red-500">加载日志失败</p>
+                <p className="text-sm text-red-500">{t('logs.load.fail')}</p>
                 <p className="text-xs text-gray-500 dark:text-slate-500">
-                  {error instanceof Error ? error.message : '未知错误'}
+                  {error instanceof Error ? error.message : t('common.unknown_error')}
                 </p>
                 <Button variant="secondary" size="sm" onClick={() => refetch()} className="mt-2">
-                  重试
+                  {t('logs.retry')}
                 </Button>
               </div>
             </div>
           ) : logs.length === 0 ? (
             <div className="flex items-center justify-center h-32">
               <p className="text-xs text-gray-500 dark:text-slate-500">
-                {searchQuery || logLevel !== 'all' ? '未找到匹配的日志' : '暂无日志记录'}
+                {searchQuery || logLevel !== 'all' ? t('logs.empty.search') : t('logs.empty')}
               </p>
             </div>
           ) : (

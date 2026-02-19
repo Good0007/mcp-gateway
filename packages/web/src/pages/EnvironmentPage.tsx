@@ -15,6 +15,7 @@ import {
   X,
   FileText
 } from 'lucide-react';
+import { useTranslation } from '@/hooks/useI18n';
 import { toast } from 'sonner';
 
 interface LogModalProps {
@@ -26,6 +27,7 @@ interface LogModalProps {
 }
 
 function LogModal({ isOpen, title, logs, isRunning, onClose }: LogModalProps) {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   return (
@@ -46,7 +48,7 @@ function LogModal({ isOpen, title, logs, isRunning, onClose }: LogModalProps) {
           <button
             onClick={onClose}
             disabled={isRunning}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-50"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-50 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -56,7 +58,7 @@ function LogModal({ isOpen, title, logs, isRunning, onClose }: LogModalProps) {
         <div className="flex-1 overflow-auto p-4 font-mono text-sm">
           <div className="bg-gray-900 text-gray-100 p-4 rounded">
             {logs.length === 0 ? (
-              <div className="text-gray-400">等待输出...</div>
+              <div className="text-gray-400">{t('env.log.waiting')}</div>
             ) : (
               logs.map((log, index) => (
                 <div key={index} className="mb-1">
@@ -67,7 +69,7 @@ function LogModal({ isOpen, title, logs, isRunning, onClose }: LogModalProps) {
             {isRunning && (
               <div className="flex items-center gap-2 mt-2 text-blue-400">
                 <Loader className="w-4 h-4 animate-spin" />
-                <span>执行中...</span>
+                <span>{t('env.log.running')}</span>
               </div>
             )}
           </div>
@@ -80,7 +82,7 @@ function LogModal({ isOpen, title, logs, isRunning, onClose }: LogModalProps) {
             disabled={isRunning}
             className="w-full"
           >
-            {isRunning ? '执行中...' : '关闭'}
+            {isRunning ? t('env.log.running') : t('env.log.close')}
           </Button>
         </div>
       </div>
@@ -125,10 +127,10 @@ interface EnvironmentCheck {
 const ENVIRONMENTS: Omit<EnvironmentCheck, 'installed' | 'version'>[] = [
   {
     id: 'node',
-    name: 'Node.js',
+    name: 'env.name.node',
     command: 'node',
     checkCommand: 'node --version',
-    description: 'JavaScript 运行时，用于运行 npx 和 @modelcontextprotocol 官方服务',
+    description: 'env.desc.node',
     installUrl: 'https://nodejs.org',
     installCommands: {
       mac: 'brew install node',
@@ -154,28 +156,28 @@ const ENVIRONMENTS: Omit<EnvironmentCheck, 'installed' | 'version'>[] = [
   },
   {
     id: 'npm',
-    name: 'npm',
+    name: 'env.name.npm',
     command: 'npm',
     checkCommand: 'npm --version',
-    description: 'Node.js 包管理器（随 Node.js 自动安装）',
+    description: 'env.desc.npm',
     installUrl: 'https://nodejs.org',
     required: true,
   },
   {
     id: 'npx',
-    name: 'npx',
+    name: 'env.name.npx',
     command: 'npx',
     checkCommand: 'npx --version',
-    description: 'Node.js 包执行器（随 Node.js 自动安装），用于运行 MCP 服务',
+    description: 'env.desc.npx',
     installUrl: 'https://nodejs.org',
     required: true,
   },
   {
     id: 'python3',
-    name: 'Python 3',
+    name: 'env.name.python',
     command: 'python3',
     checkCommand: 'python3 --version',
-    description: 'Python 运行时，某些 MCP 服务需要',
+    description: 'env.desc.python',
     installUrl: 'https://python.org',
     installCommands: {
       mac: 'brew install python@3',
@@ -201,10 +203,10 @@ const ENVIRONMENTS: Omit<EnvironmentCheck, 'installed' | 'version'>[] = [
   },
   {
     id: 'pip',
-    name: 'pip',
+    name: 'env.name.pip',
     command: 'pip',
     checkCommand: 'pip --version',
-    description: 'Python 包管理器（通常随 Python 安装）',
+    description: 'env.desc.pip',
     installUrl: 'https://pip.pypa.io',
     installCommands: {
       mac: 'python3 -m ensurepip --upgrade',
@@ -221,10 +223,10 @@ const ENVIRONMENTS: Omit<EnvironmentCheck, 'installed' | 'version'>[] = [
   },
   {
     id: 'uv',
-    name: 'uv',
+    name: 'env.name.uv',
     command: 'uv',
     checkCommand: 'uv --version',
-    description: 'Python 包管理器和执行器（Rust 实现，速度极快）',
+    description: 'env.desc.uv',
     installUrl: 'https://docs.astral.sh/uv/',
     installCommands: {
       mac: 'curl -LsSf https://astral.sh/uv/install.sh | sh',
@@ -239,19 +241,19 @@ const ENVIRONMENTS: Omit<EnvironmentCheck, 'installed' | 'version'>[] = [
   },
   {
     id: 'uvx',
-    name: 'uvx',
+    name: 'env.name.uvx',
     command: 'uvx',
     checkCommand: 'uvx --version',
-    description: 'Python 包执行器（随 uv 安装），类似 npx',
+    description: 'env.desc.uvx',
     installUrl: 'https://docs.astral.sh/uv/',
     required: false,
   },
   {
     id: 'git',
-    name: 'Git',
+    name: 'env.name.git',
     command: 'git',
     checkCommand: 'git --version',
-    description: '版本控制工具，某些安装方式需要',
+    description: 'env.desc.git',
     installUrl: 'https://git-scm.com',
     installCommands: {
       mac: 'brew install git',
@@ -277,10 +279,10 @@ const ENVIRONMENTS: Omit<EnvironmentCheck, 'installed' | 'version'>[] = [
   },
   {
     id: 'rust',
-    name: 'Rust',
+    name: 'env.name.rust',
     command: 'rustc',
     checkCommand: 'rustc --version',
-    description: 'Rust 编程语言，用于运行 Rust 编写的 MCP 服务',
+    description: 'env.desc.rust',
     installUrl: 'https://www.rust-lang.org',
     installCommands: {
       mac: 'curl --proto \'=https\' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y',
@@ -295,19 +297,19 @@ const ENVIRONMENTS: Omit<EnvironmentCheck, 'installed' | 'version'>[] = [
   },
   {
     id: 'cargo',
-    name: 'Cargo',
+    name: 'env.name.cargo',
     command: 'cargo',
     checkCommand: 'cargo --version',
-    description: 'Rust 包管理器和构建工具（随 Rust 安装）',
+    description: 'env.desc.cargo',
     installUrl: 'https://www.rust-lang.org',
     required: false,
   },
   {
     id: 'java',
-    name: 'Java',
+    name: 'env.name.java',
     command: 'java',
     checkCommand: 'java -version',
-    description: 'Java 运行时环境，用于运行 Java 编写的 MCP 服务',
+    description: 'env.desc.java',
     installUrl: 'https://www.oracle.com/java/',
     installCommands: {
       mac: 'brew install openjdk@17',
@@ -333,19 +335,19 @@ const ENVIRONMENTS: Omit<EnvironmentCheck, 'installed' | 'version'>[] = [
   },
   {
     id: 'javac',
-    name: 'Java 编译器',
+    name: 'env.name.javac',
     command: 'javac',
     checkCommand: 'javac -version',
-    description: 'Java 编译器（随 JDK 安装）',
+    description: 'env.desc.javac',
     installUrl: 'https://www.oracle.com/java/',
     required: false,
   },
   {
     id: 'go',
-    name: 'Go',
+    name: 'env.name.go',
     command: 'go',
     checkCommand: 'go version',
-    description: 'Go 编程语言，用于运行 Go 编写的 MCP 服务',
+    description: 'env.desc.go',
     installUrl: 'https://go.dev',
     installCommands: {
       mac: 'brew install go',
@@ -372,6 +374,7 @@ const ENVIRONMENTS: Omit<EnvironmentCheck, 'installed' | 'version'>[] = [
 ];
 
 export function EnvironmentPage() {
+  const { t, language } = useTranslation();
   const [environments, setEnvironments] = useState<EnvironmentCheck[]>([]);
   const [checking, setChecking] = useState(true);
   const [platform, setPlatform] = useState<'mac' | 'linux' | 'windows'>('mac');
@@ -385,6 +388,19 @@ export function EnvironmentPage() {
     logs: [] as string[],
     isRunning: false,
   });
+
+  const colon = language === 'zh' ? '：' : ': ';
+  
+  const getPlatformName = (p: string) => {
+    switch (p) {
+      case 'mac': return t('env.platform.mac');
+      case 'linux': return t('env.platform.linux');
+      case 'windows': return t('env.platform.windows');
+      default: return p;
+    }
+  };
+  
+  const platformName = getPlatformName(platform);
 
   useEffect(() => {
     // 检测平台
@@ -428,8 +444,8 @@ export function EnvironmentPage() {
       setEnvironments(checkedEnvs);
     } catch (error) {
       console.error('Failed to check environments:', error);
-      toast.error('环境检测失败', {
-        description: '无法连接到后端服务',
+      toast.error(t('env.check.fail'), {
+        description: t('env.check.fail_desc'),
       });
       
       // 使用默认值
@@ -454,9 +470,8 @@ export function EnvironmentPage() {
     }
     
     if (!command) {
-      const pmInfo = packageManager !== 'unknown' ? ` (${packageManager})` : '';
-      toast.error('无法安装', {
-        description: `当前平台 (${platform}${pmInfo}) 不支持自动安装，请访问官网手动安装`,
+      toast.error(t('env.install.fail'), {
+        description: t('env.no_install_cmd'),
       });
       return;
     }
@@ -465,13 +480,13 @@ export function EnvironmentPage() {
     const pmInfo = packageManager !== 'unknown' ? ` [${packageManager}]` : '';
     setLogModal({
       isOpen: true,
-      title: `正在安装 ${env.name}`,
+      title: t('env.installing_name', { name: t(env.name) }),
       logs: [
-        `平台：${platform}${pmInfo}`,
-        linuxDistro ? `发行版：${linuxDistro}` : '',
-        `命令：${command}`,
+        t('env.log.item', { label: t('env.log.platform'), value: `${platformName}${pmInfo}` }),
+        linuxDistro ? t('env.log.item', { label: t('env.log.distro'), value: linuxDistro }) : '',
+        t('env.log.item', { label: t('env.log.command'), value: command }),
         '',
-        '开始执行...',
+        t('env.install.start'),
       ].filter(Boolean),
       isRunning: true,
     });
@@ -495,15 +510,15 @@ export function EnvironmentPage() {
           logs: [
             ...prev.logs,
             '',
-            '❌ 安装失败',
+            `❌ ${t('env.install.fail')}`,
             '',
-            ...(result.logs || result.details || result.error || '未知错误').split('\n'),
+            ...(result.logs || result.details || result.error || t('common.unknown_error')).split('\n'),
           ],
           isRunning: false,
         }));
         
-        toast.error('安装失败', {
-          description: result.error || '请查看日志了解详情',
+        toast.error(t('env.install.fail'), {
+          description: result.error || t('env.check_logs'),
           duration: 6000,
         });
         return;
@@ -515,15 +530,15 @@ export function EnvironmentPage() {
         logs: [
           ...prev.logs,
           '',
-          '✅ 安装成功',
+          `✅ ${t('env.install.success')}`,
           '',
-          ...(result.logs || result.output || '安装完成').split('\n'),
+          ...(result.logs || result.output || t('env.install.success')).split('\n'),
         ],
         isRunning: false,
       }));
 
-      toast.success('安装完成', {
-        description: `${env.name} 已成功安装`,
+      toast.success(t('env.install.success'), {
+        description: `${t(env.name)} ${t('env.installed')}`,
       });
 
       // 重新检测
@@ -535,21 +550,21 @@ export function EnvironmentPage() {
         }, 3000);
       }, 1000);
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : '请手动安装';
+      const errorMsg = error instanceof Error ? error.message : t('env.install.manual_required');
       
       setLogModal(prev => ({
         ...prev,
         logs: [
           ...prev.logs,
           '',
-          '❌ 安装失败',
+          `❌ ${t('env.install.fail')}`,
           '',
           errorMsg,
         ],
         isRunning: false,
       }));
       
-      toast.error('安装失败', {
+      toast.error(t('env.install.fail'), {
         description: errorMsg,
       });
     }
@@ -557,8 +572,8 @@ export function EnvironmentPage() {
 
   const handleUninstall = async (env: EnvironmentCheck) => {
     if (platform === 'windows') {
-      toast.error('无法卸载', {
-        description: '当前环境不支持自动卸载，请手动卸载',
+      toast.error(t('env.uninstall.fail'), {
+        description: t('env.no_uninstall_cmd'),
       });
       return;
     }
@@ -573,8 +588,8 @@ export function EnvironmentPage() {
     }
     
     if (!command) {
-      toast.error('无法卸载', {
-        description: '当前环境不支持自动卸载，请手动卸载',
+      toast.error(t('env.uninstall.fail'), {
+        description: t('env.no_uninstall_cmd'),
       });
       return;
     }
@@ -583,13 +598,13 @@ export function EnvironmentPage() {
     const pmInfo = packageManager !== 'unknown' ? ` [${packageManager}]` : '';
     setLogModal({
       isOpen: true,
-      title: `正在卸载 ${env.name}`,
+      title: t('env.uninstalling_name', { name: t(env.name) }),
       logs: [
-        `平台：${platform}${pmInfo}`,
-        linuxDistro ? `发行版：${linuxDistro}` : '',
-        `命令：${command}`,
+        t('env.log.item', { label: t('env.log.platform'), value: `${platformName}${pmInfo}` }),
+        linuxDistro ? t('env.log.item', { label: t('env.log.distro'), value: linuxDistro }) : '',
+        t('env.log.item', { label: t('env.log.command'), value: command }),
         '',
-        '开始执行...',
+        t('env.install.start'),
       ].filter(Boolean),
       isRunning: true,
     });
@@ -612,15 +627,15 @@ export function EnvironmentPage() {
           logs: [
             ...prev.logs,
             '',
-            '❌ 卸载失败',
+            `❌ ${t('env.uninstall.fail')}`,
             '',
-            ...(result.logs || result.details || result.error || '未知错误').split('\n'),
+            ...(result.logs || result.details || result.error || t('common.unknown_error')).split('\n'),
           ],
           isRunning: false,
         }));
         
-        toast.error('卸载失败', {
-          description: result.error || '请查看日志了解详情',
+        toast.error(t('env.uninstall.fail'), {
+          description: result.error || t('env.check_logs'),
           duration: 6000,
         });
         return;
@@ -631,15 +646,15 @@ export function EnvironmentPage() {
         logs: [
           ...prev.logs,
           '',
-          '✅ 卸载成功',
+          `✅ ${t('env.uninstall.success')}`,
           '',
-          ...(result.logs || result.output || '卸载完成').split('\n'),
+          ...(result.logs || result.output || t('env.uninstall.success')).split('\n'),
         ],
         isRunning: false,
       }));
 
-      toast.success('卸载完成', {
-        description: `${env.name} 已卸载`,
+      toast.success(t('env.uninstall.success'), {
+        description: `${t(env.name)} ${t('env.not_installed')}`,
       });
 
       // 重新检测
@@ -650,21 +665,21 @@ export function EnvironmentPage() {
         }, 3000);
       }, 1000);
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : '请手动卸载';
+      const errorMsg = error instanceof Error ? error.message : t('env.uninstall.manual_required');
       
       setLogModal(prev => ({
         ...prev,
         logs: [
           ...prev.logs,
           '',
-          '❌ 卸载失败',
+          `❌ ${t('env.uninstall.fail')}`,
           '',
           errorMsg,
         ],
         isRunning: false,
       }));
       
-      toast.error('卸载失败', {
+      toast.error(t('env.uninstall.fail'), {
         description: errorMsg,
       });
     }
@@ -683,7 +698,7 @@ export function EnvironmentPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500 dark:text-slate-500">必需环境</p>
+                <p className="text-sm text-gray-500 dark:text-slate-500">{t('env.required_env')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                   {requiredInstalled}/{requiredCount}
                 </p>
@@ -707,7 +722,7 @@ export function EnvironmentPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500 dark:text-slate-500">可选环境</p>
+                <p className="text-sm text-gray-500 dark:text-slate-500">{t('env.optional_env')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                   {optionalInstalled}/{optionalCount}
                 </p>
@@ -723,9 +738,9 @@ export function EnvironmentPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500 dark:text-slate-500">当前平台</p>
+                <p className="text-sm text-gray-500 dark:text-slate-500">{t('env.platform')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                  {platform === 'mac' ? 'macOS' : platform === 'linux' ? 'Linux' : 'Windows'}
+                  {platform === 'mac' ? t('env.platform.mac') : platform === 'linux' ? t('env.platform.linux') : t('env.platform.windows')}
                 </p>
               </div>
               <Button
@@ -751,7 +766,7 @@ export function EnvironmentPage() {
           <Card className="dark:bg-slate-900 dark:border-slate-800">
             <CardContent className="py-12 text-center">
               <Loader className="w-8 h-8 animate-spin mx-auto text-primary-500 mb-3" />
-              <p className="text-sm text-gray-500 dark:text-slate-500">正在检测环境...</p>
+              <p className="text-sm text-gray-500 dark:text-slate-500">{t('env.checking')}</p>
             </CardContent>
           </Card>
         ) : (
@@ -760,7 +775,7 @@ export function EnvironmentPage() {
             <div>
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                必需环境
+                {t('env.required_env')}
               </h3>
               <div className="space-y-2">
                 {environments.filter(e => e.required).map(env => (
@@ -785,7 +800,7 @@ export function EnvironmentPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-                              {env.name}
+                              {t(env.name)}
                             </h4>
                             {env.version && (
                               <Badge className="text-[10px] bg-gray-500/10 text-gray-600 dark:text-slate-400">
@@ -794,7 +809,7 @@ export function EnvironmentPage() {
                             )}
                           </div>
                           <p className="text-xs text-gray-500 dark:text-slate-500 mb-2">
-                            {env.description}
+                            {t(env.description)}
                           </p>
                           <div className="flex items-center gap-2 text-[11px] mb-2">
                             <code className="px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300">
@@ -806,7 +821,7 @@ export function EnvironmentPage() {
                               rel="noopener noreferrer"
                               className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                             >
-                              官网
+                              {t('env.official')}
                               <ExternalLink className="w-3 h-3" />
                             </a>
                           </div>
@@ -824,7 +839,7 @@ export function EnvironmentPage() {
                             
                             return (
                               <div className="flex items-start gap-2 text-[11px] bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded px-2 py-1.5">
-                                <span className="text-blue-700 dark:text-blue-400 font-medium whitespace-nowrap">推荐:</span>
+                                <span className="text-blue-700 dark:text-blue-400 font-medium whitespace-nowrap">{t('env.recommend')}</span>
                                 <code className="text-gray-700 dark:text-slate-300 break-all flex-1">
                                   {command}
                                 </code>
@@ -854,7 +869,7 @@ export function EnvironmentPage() {
                                 className="gap-1"
                               >
                                 <Download className="w-3.5 h-3.5" />
-                                安装
+                                {t('env.install')}
                               </Button>
                             );
                           })()}
@@ -870,7 +885,7 @@ export function EnvironmentPage() {
             <div>
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                 <Terminal className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                可选环境
+                {t('env.optional_env')}
               </h3>
               <div className="space-y-2">
                 {environments.filter(e => !e.required).map(env => (
@@ -893,7 +908,7 @@ export function EnvironmentPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-                              {env.name}
+                              {t(env.name)}
                             </h4>
                             {env.version && (
                               <Badge className="text-[10px] bg-gray-500/10 text-gray-600 dark:text-slate-400">
@@ -902,7 +917,7 @@ export function EnvironmentPage() {
                             )}
                           </div>
                           <p className="text-xs text-gray-500 dark:text-slate-500 mb-2">
-                            {env.description}
+                            {t(env.description)}
                           </p>
                           <div className="flex items-center gap-2 text-[11px] mb-2">
                             <code className="px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300">
@@ -914,7 +929,7 @@ export function EnvironmentPage() {
                               rel="noopener noreferrer"
                               className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                             >
-                              官网
+                              {t('env.official')}
                               <ExternalLink className="w-3 h-3" />
                             </a>
                           </div>
@@ -932,7 +947,7 @@ export function EnvironmentPage() {
                             
                             return (
                               <div className="flex items-start gap-2 text-[11px] bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded px-2 py-1.5">
-                                <span className="text-blue-700 dark:text-blue-400 font-medium whitespace-nowrap">推荐:</span>
+                                <span className="text-blue-700 dark:text-blue-400 font-medium whitespace-nowrap">{t('env.recommend')}</span>
                                 <code className="text-gray-700 dark:text-slate-300 break-all flex-1">
                                   {command}
                                 </code>
@@ -962,7 +977,7 @@ export function EnvironmentPage() {
                                 className="gap-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
-                                卸载
+                                {t('env.uninstall')}
                               </Button>
                             );
                           })()}
@@ -985,7 +1000,7 @@ export function EnvironmentPage() {
                                 className="gap-1"
                               >
                                 <Download className="w-3.5 h-3.5" />
-                                安装
+                                {t('env.install')}
                               </Button>
                             );
                           })()}
@@ -1007,14 +1022,14 @@ export function EnvironmentPage() {
             <AlertTriangle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <div className="text-xs text-gray-600 dark:text-slate-400 space-y-2">
               <p>
-                <strong className="text-gray-900 dark:text-white">使用说明：</strong>
+                <strong className="text-gray-900 dark:text-white">{t('env.instructions')}</strong>
               </p>
               <ul className="list-disc list-inside space-y-1">
-                <li><strong>必需环境</strong>：Node.js 和 npm/npx 是运行 MCP 代理的基础要求</li>
-                <li><strong>可选环境</strong>：根据您使用的 MCP 服务选择安装（如使用 Python 服务需要 Python）</li>
-                <li><strong>uv/uvx</strong>：新一代 Python 包管理器，速度极快，推荐安装</li>
-                <li><strong>一键安装</strong>：点击安装按钮执行自动安装脚本（需要管理员权限）</li>
-                <li><strong>手动安装</strong>：如果自动安装失败，请访问官网手动安装</li>
+                <li><strong>{t('env.required_env')}</strong>{colon}{t('env.instr.required')}</li>
+                <li><strong>{t('env.optional_env')}</strong>{colon}{t('env.instr.optional')}</li>
+                <li><strong>uv/uvx</strong>{colon}{t('env.instr.uv')}</li>
+                <li><strong>{t('env.instr.install_btn')}</strong>{colon}{t('env.instr.install_desc')}</li>
+                <li><strong>{t('env.instr.manual_btn')}</strong>{colon}{t('env.instr.manual_desc')}</li>
               </ul>
             </div>
           </div>

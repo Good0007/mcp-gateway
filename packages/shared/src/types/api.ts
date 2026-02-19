@@ -160,3 +160,20 @@ export interface LogListResponse {
   logs: LogEntry[];
   hasMore: boolean;
 }
+
+/**
+ * MCP Proxy Status Response
+ */
+export interface McpProxyStatusResponse {
+  enabled: boolean;
+  hasToken: boolean;
+  protocol: string;
+  transports: string[];
+  endpoints: { sse: string };
+  stats: {
+    activeSessions: number;
+    httpSessions: number;
+    sseSessions: number;
+    totalTools: number;
+  };
+}
