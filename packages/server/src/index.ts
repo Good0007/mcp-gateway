@@ -3,10 +3,12 @@
  * HTTP REST API gateway for GUI frontend
  */
 
+// Load environment variables (MUST be first)
+import { ENV } from './env.js';
 import { serve } from '@hono/node-server';
 import app from './app.js';
 
-const port = parseInt(process.env.PORT || '3001', 10);
+const port = ENV.PORT;
 
 console.log(`🚀 MCP Agent API Server starting on port ${port}...`);
 
@@ -15,7 +17,13 @@ serve({
   port,
 }, (info) => {
   console.log(`✅ Server running at http://localhost:${info.port}`);
+  console.log('');
+  
   console.log('📡 API endpoints:');
+  console.log('   GET    /api/auth/status');
+  console.log('   POST   /api/auth/login');
+  console.log('   POST   /api/auth/logout');
+  console.log('   GET    /api/auth/verify');
   console.log('   GET    /api/status');
   console.log('   GET    /api/services');
   console.log('   GET    /api/services/:id');

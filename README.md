@@ -113,7 +113,40 @@ mcp-agent/
 - `sse`: Server-Sent Events
 - `http`: REST API
 
-## 📖 更多资源
+## � 安全配置（登录认证）
+
+MCP Agent 支持 Web UI 登录认证保护，默认关闭。启用后，访问 Web UI 需要登录。
+
+### Docker 环境配置
+
+编辑 `docker-compose.yml`：
+
+```yaml
+environment:
+  - MCP_AGENT_AUTH_ENABLE=true    # 启用认证
+  - MCP_AGENT_USERNAME=admin      # 设置用户名
+  - MCP_AGENT_PASSWORD=your_secure_password  # 设置密码
+```
+
+### 开发环境配置
+
+创建 `.env` 文件（参考 `.env.example`）：
+
+```bash
+# 启用登录认证
+MCP_AGENT_AUTH_ENABLE=true
+
+# 设置用户名和密码
+MCP_AGENT_USERNAME=admin
+MCP_AGENT_PASSWORD=your_secure_password
+```
+
+⚠️ **安全提示**：
+- 生产环境请务必修改默认密码
+- 使用强密码（建议至少 12 位，包含大小写字母、数字和特殊字符）
+- 建议配合 HTTPS 使用以保护传输过程中的凭据
+
+## �📖 更多资源
 
 - [QUICKSTART.md](./QUICKSTART.md) - 详细快速开始指南
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - 项目架构和最佳实践

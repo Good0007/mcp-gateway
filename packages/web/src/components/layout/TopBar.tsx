@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Moon, Sun, Bell } from 'lucide-react';
+import { Moon, Sun, Bell, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuthStatus, useLogout } from '@/hooks/useAuth';
+import { toast } from '@/lib/toast';
 
 interface TopBarProps {
   title: string;
@@ -14,6 +16,9 @@ export function TopBar({ title, subtitle }: TopBarProps) {
     }
     return false;
   });
+
+  const { data: authStatus } = useAuthStatus();
+  const logoutMutation = useLogout();
 
   useEffect(() => {
     const hasDark = document.documentElement.classList.contains('dark');
@@ -29,6 +34,16 @@ export function TopBar({ title, subtitle }: TopBarProps) {
       document.documentElement.classList.remove('dark');
     }
     localStorage.setItem('theme', newDark ? 'dark' : 'light');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutMutation.mutateAsync();
+      // 退出成功后自动跳转到登录页，无需提示
+    } catch (error) {
+      toast.error('退出登录失败');
+      console.error('Logout error:', error);
+    }
   };
 
   return (
@@ -51,6 +66,20 @@ export function TopBar({ title, subtitle }: TopBarProps) {
           <Bell className="w-4 h-4" />
           <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-accent-500 rounded-full" />
         </button>
+
+        {/* Logout button (only show if auth is enabled and authenticated) */}
+        {authStatus?.enabled && authStatus?.authenticated && (
+          <>
+            <div className="w-px h-5 bg-gray-200 dark:bg-slate-700 mx-1.5" />
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+              title="退出登录"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </>
+        )}
 
         {/* Divider */}
         <div className="w-px h-5 bg-gray-200 dark:bg-slate-700 mx-1.5" />

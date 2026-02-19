@@ -13,6 +13,9 @@ dist/
 build/
 *.tsbuildinfo
 
+# Web build artifacts (copied to server/public)
+packages/server/public/
+
 # Environment variables
 .env
 .env.local

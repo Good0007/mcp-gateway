@@ -3,12 +3,14 @@
 # ===================================
 # 
 # 运行时工具清单:
-#   - Node.js 22 (LTS)
+#   - Node.js 24 (LTS)
 #   - Bun (包管理器和运行时)
 #   - Python 3.11+
 #   - uv/uvx (Python 包管理器)
+#   - Go (编译型语言)
+#   - Rust (编译型语言)
 #
-# 镜像大小: ~300MB
+# 镜像大小: ~500MB
 # ===================================
 
 # ===================================
@@ -42,7 +44,7 @@ RUN ls -la packages/server/dist/ && \
 # ===================================
 # Stage 2: 生产阶段 (Production Stage)
 # ===================================
-FROM node:22-alpine AS production
+FROM node:24-alpine AS production
 
 # 安装必要的系统依赖和运行时工具
 RUN apk add --no-cache \
@@ -51,7 +53,11 @@ RUN apk add --no-cache \
     python3 \
     py3-pip \
     curl \
-    bash
+    go \
+    rust \
+    cargo \
+    bash \
+    git
 
 # 安装 bun (用于安装依赖)
 RUN curl -fsSL https://bun.sh/install | bash && \
@@ -98,6 +104,9 @@ RUN echo "=== 验证运行时工具 ===" && \
     node --version && \
     npm --version && \
     npx --version && \
+    go version && \
+    rustc --version && \
+    cargo --version && \
     bun --version && \
     python3 --version && \
     uv --version && \
