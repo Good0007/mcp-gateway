@@ -4,6 +4,7 @@
  */
 
 import { Hono } from 'hono';
+import { streamSSE } from 'hono/streaming';
 import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import * as os from 'os';
@@ -161,6 +162,79 @@ app.get('/check', async (c) => {
     console.error('Environment check error:', error);
     return c.json({ error: error.message || 'Failed to check environments' }, 500);
   }
+});
+
+// GET /api/environment/sse-install - Install an environment with real-time logs via SSE
+app.get('/sse-install', async (c) => {
+  const id = c.req.query('id');
+  const command = c.req.query('command');
+
+  if (!id || !command) {
+    return c.text('Missing id or command', 400);
+  }
+
+  console.log(`Installing ${id} via SSE: ${command}`);
+
+  return streamSSE(c, async (stream) => {
+    // Send initial status
+    await stream.writeSSE({
+      event: 'status',
+      data: 'starting',
+    });
+
+    const currentOS = detectOS();
+    const shell = currentOS === 'windows' ? 'powershell.exe' : '/bin/bash';
+    const shellArgs = currentOS === 'windows' ? ['-Command', command] : ['-c', command];
+    
+    const child = spawn(shell, shellArgs, {
+      env: { ...process.env, DEBIAN_FRONTEND: 'noninteractive' },
+    });
+
+    // Handle stdout
+    child.stdout?.on('data', async (data) => {
+      const output = data.toString();
+      await stream.writeSSE({
+        event: 'log',
+        data: output,
+      });
+    });
+
+    // Handle stderr
+    child.stderr?.on('data', async (data) => {
+      const output = data.toString();
+      await stream.writeSSE({
+        event: 'log',
+        data: output,
+      });
+    });
+
+    // Wait for process to exit
+    const exitCode = await new Promise<number>((resolve) => {
+      child.on('close', resolve);
+      child.on('error', (err) => {
+        console.error(`[${id}] spawn error:`, err);
+        resolve(-1);
+      });
+    });
+
+    if (exitCode === 0) {
+      await stream.writeSSE({
+        event: 'status',
+        data: 'success',
+      });
+      await stream.writeSSE({
+        event: 'log',
+        data: `${id} installed successfully`,
+      });
+    } else {
+      await stream.writeSSE({
+        event: 'service-error',
+        data: `Installation failed with code ${exitCode}`,
+      });
+    }
+    
+    await stream.close();
+  });
 });
 
 // POST /api/environment/install - Install an environment with real-time logs

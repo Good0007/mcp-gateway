@@ -491,83 +491,58 @@ export function EnvironmentPage() {
       isRunning: true,
     });
 
-    try {
-      const response = await fetch('/api/environment/install', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          id: env.id,
-          command,
-        }),
-      });
+    // 使用 SSE 连接
+    const url = `/api/environment/sse-install?id=${env.id}&command=${encodeURIComponent(command)}`;
+    const eventSource = new EventSource(url);
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        // 显示错误日志
+    eventSource.addEventListener('status', (event) => {
+      if (event.data === 'success') {
         setLogModal(prev => ({
           ...prev,
-          logs: [
-            ...prev.logs,
-            '',
-            `❌ ${t('env.install.fail')}`,
-            '',
-            ...(result.logs || result.details || result.error || t('common.unknown_error')).split('\n'),
-          ],
+          logs: [...prev.logs, '', `✅ ${t('env.install.success')}`],
           isRunning: false,
         }));
+        toast.success(t('env.install.success'));
+        eventSource.close();
         
-        toast.error(t('env.install.fail'), {
-          description: result.error || t('env.check_logs'),
-          duration: 6000,
-        });
-        return;
-      }
-
-      // 显示成功日志
-      setLogModal(prev => ({
-        ...prev,
-        logs: [
-          ...prev.logs,
-          '',
-          `✅ ${t('env.install.success')}`,
-          '',
-          ...(result.logs || result.output || t('env.install.success')).split('\n'),
-        ],
-        isRunning: false,
-      }));
-
-      toast.success(t('env.install.success'), {
-        description: `${t(env.name)} ${t('env.installed')}`,
-      });
-
-      // 重新检测
-      setTimeout(() => {
-        checkEnvironments();
-        // 3秒后自动关闭模态框
+        // 重新检测
         setTimeout(() => {
-          setLogModal(prev => ({ ...prev, isOpen: false }));
-        }, 3000);
-      }, 1000);
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : t('env.install.manual_required');
-      
+          checkEnvironments();
+          setTimeout(() => {
+            setLogModal(prev => ({ ...prev, isOpen: false }));
+          }, 3000);
+        }, 1000);
+      }
+    });
+
+    eventSource.addEventListener('log', (event) => {
       setLogModal(prev => ({
         ...prev,
-        logs: [
-          ...prev.logs,
-          '',
-          `❌ ${t('env.install.fail')}`,
-          '',
-          errorMsg,
-        ],
+        logs: [...prev.logs, event.data],
+      }));
+    });
+
+    eventSource.addEventListener('service-error', (event) => {
+      setLogModal(prev => ({
+        ...prev,
+        logs: [...prev.logs, '', `❌ ${t('env.install.fail')}`, event.data],
         isRunning: false,
       }));
-      
-      toast.error(t('env.install.fail'), {
-        description: errorMsg,
-      });
-    }
+      toast.error(t('env.install.fail'), { description: event.data });
+      eventSource.close();
+    });
+
+    eventSource.onerror = (err) => {
+      // Handle connection error (likely closed)
+      if (eventSource.readyState !== EventSource.CLOSED) {
+         setLogModal(prev => ({
+          ...prev,
+          logs: [...prev.logs, '', `❌ ${t('env.check.fail_desc')}`],
+          isRunning: false,
+        }));
+        eventSource.close();
+      }
+    };
   };
 
   const handleUninstall = async (env: EnvironmentCheck) => {
