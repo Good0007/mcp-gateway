@@ -2,8 +2,9 @@ import { useState, type FormEvent } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Lock, User, Loader2, Shield } from 'lucide-react';
+import { Lock, User, Loader2 } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { Logo } from '@/components/Logo';
 
 interface LoginPageProps {
   onLogin: (username: string, password: string) => Promise<boolean>;
@@ -41,8 +42,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       <div className="w-full max-w-md">
         {/* Logo & Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-500 dark:bg-primary-600 mb-4">
-            <Shield className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg shadow-cyan-500/30">
+            <Logo size={64} />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             MCP Agent

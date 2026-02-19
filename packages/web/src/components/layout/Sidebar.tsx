@@ -4,12 +4,12 @@ import {
   Globe,
   Settings,
   FileText,
-  Zap,
   Database,
   Terminal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAgentStatus } from '@/hooks/useAgent';
+import { Logo } from '@/components/Logo';
 
 interface SidebarProps {
   currentPage: string;
@@ -42,8 +42,8 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       {/* Logo */}
       <div className="px-4 py-5">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary-400 via-primary-500 to-accent-500 rounded-lg flex items-center justify-center shadow-md shadow-primary-500/20">
-            <Zap className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 rounded-lg overflow-hidden shadow-md shadow-cyan-500/20">
+            <Logo size={32} />
           </div>
           <div className="min-w-0">
             <h1 className="font-bold text-sm text-gray-900 dark:text-white leading-tight tracking-tight">
