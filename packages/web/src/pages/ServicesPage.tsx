@@ -2,9 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { useServices, useStartService, useStopService, useDeleteService, useAddService, useUpdateService, useService } from '@/hooks/useAgent';
-import { Loader, Play, Square, AlertCircle, Settings, Plus, Trash2, PlayCircle, StopCircle, X, Edit, Upload, CheckCircle2, Wrench } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useServices, useStartService, useStopService, useDeleteService, useAddService, useUpdateService, useService, QUERY_KEYS } from '@/hooks/useAgent';
+import { useQueryClient } from '@tanstack/react-query';
+import { Loader, Play, Square, AlertCircle, Settings, Plus, Trash2, PlayCircle, StopCircle, X, Edit, Upload, CheckCircle2, Wrench, Terminal, Minimize2, Maximize2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import type { MCPServiceStatus, Tool } from '@mcp-agent/shared';
 import { parseMCPConfig } from '@/utils/mcp-config-parser';
 import { toast } from 'sonner';
@@ -27,8 +28,153 @@ function StatusBadge({ status }: { status: MCPServiceStatus }) {
   );
 }
 
+
+
+// 启动日志弹窗组件
+function StartupLogsModal({ 
+  serviceId, 
+  serviceName, 
+  onClose,
+  onSuccess
+}: { 
+  serviceId: string; 
+  serviceName: string; 
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const { t } = useTranslation();
+  const [logs, setLogs] = useState<string[]>([]);
+  const [status, setStatus] = useState<'connecting' | 'starting' | 'success' | 'error'>('connecting');
+  const logsEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // 自动滚动到底部
+    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [logs]);
+
+  useEffect(() => {
+    let eventSource: EventSource | null = null;
+
+    const connectSSE = () => {
+      // 连接到 SSE 启动接口
+      const url = `/api/services/${serviceId}/sse-start`;
+      eventSource = new EventSource(url, { withCredentials: true });
+
+      eventSource.onopen = () => {
+        setLogs(prev => [...prev, `[System] Connected to log stream for ${serviceName}...`]);
+      };
+
+      eventSource.addEventListener('status', (event: MessageEvent) => {
+        const newStatus = event.data;
+        if (newStatus === 'starting') {
+          setStatus('starting');
+          setLogs(prev => [...prev, `[System] Starting service...`]);
+        } else if (newStatus === 'success') {
+          setStatus('success');
+          setLogs(prev => [...prev, `[System] Service started successfully!`]);
+          // 延迟关闭，让用户看到成功信息
+          setTimeout(() => {
+            onSuccess();
+          }, 1500);
+        }
+      });
+
+      eventSource.addEventListener('log', (event: MessageEvent) => {
+        setLogs(prev => [...prev, event.data]);
+      });
+
+      eventSource.addEventListener('service-error', (event: MessageEvent) => {
+        // 这里的 error 是自定义事件，包含错误信息
+        setStatus('error');
+        setLogs(prev => [...prev, `[Error] ${event.data}`]);
+        // 不自动关闭，让用户看到错误
+        if (eventSource) {
+          eventSource.close();
+        }
+      });
+
+      eventSource.onerror = (err) => {
+        // 网络错误或连接断开
+        console.error('SSE Error:', err);
+        if (eventSource?.readyState === EventSource.CLOSED) {
+           // 正常关闭不处理
+        } else {
+           setLogs(prev => [...prev, `[System] Connection lost.`]);
+           setStatus('error');
+           eventSource?.close();
+        }
+      };
+    };
+
+    connectSSE();
+
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
+  }, [serviceId, serviceName]);
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
+      <Card className="w-full max-w-3xl h-[600px] flex flex-col bg-slate-950 border-slate-800 shadow-2xl overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between py-3 px-4 border-b border-slate-800 bg-slate-900">
+          <div className="flex items-center gap-2">
+            <Terminal className="w-5 h-5 text-emerald-500" />
+            <CardTitle className="text-sm font-mono text-slate-200">
+              {t('services.modal.startup_logs_title', { name: serviceName })}
+            </CardTitle>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </CardHeader>
+        <CardContent className="flex-1 p-0 overflow-hidden relative">
+          <div className="absolute inset-0 overflow-y-auto p-4 font-mono text-xs space-y-1">
+            {logs.map((log, index) => (
+              <div key={index} className={`${
+                log.startsWith('[Error]') ? 'text-red-400' : 
+                log.startsWith('[System]') ? 'text-blue-400' : 'text-slate-300'
+              } whitespace-pre-wrap break-all`}>
+                <span className="opacity-50 select-none mr-2">$</span>
+                {log}
+              </div>
+            ))}
+            {status === 'starting' && (
+              <div className="flex items-center gap-2 text-slate-500 mt-2">
+                <Loader className="w-3 h-3 animate-spin" />
+                <span>Processing...</span>
+              </div>
+            )}
+            <div ref={logsEndRef} />
+          </div>
+        </CardContent>
+        <div className="p-3 bg-slate-900 border-t border-slate-800 flex justify-end gap-2">
+          {status === 'error' && (
+            <span className="text-xs text-red-400 flex items-center mr-auto">
+              Startup failed. Check logs above.
+            </span>
+          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onClose}
+            className="border-slate-700 hover:bg-slate-800 text-slate-300"
+          >
+            {status === 'success' ? t('common.close') : t('common.cancel')}
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export function ServicesPage() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const { data: servicesData, isLoading, error } = useServices();
   const services = servicesData?.services || [];
   const startService = useStartService();
@@ -36,6 +182,9 @@ export function ServicesPage() {
   const deleteService = useDeleteService();
   const addService = useAddService();
   const updateService = useUpdateService();
+
+  // 启动日志弹窗状态
+  const [startupModal, setStartupModal] = useState<{ id: string; name: string } | null>(null);
 
   // 添加/编辑服务弹窗状态
   const [showServiceModal, setShowServiceModal] = useState(false);
@@ -47,7 +196,6 @@ export function ServicesPage() {
     description: '',
     command: '',
     args: '',
-    cwd: '',
     env: '',
     url: '',
     baseUrl: '',
@@ -88,7 +236,6 @@ export function ServicesPage() {
         description: config.description || '',
         command: config.type === 'stdio' ? config.command || '' : '',
         args: config.type === 'stdio' && config.args ? config.args.join(' ') : '',
-        cwd: config.type === 'stdio' ? config.cwd || '' : '',
         env: config.type === 'stdio' && config.env 
           ? JSON.stringify(config.env, null, 2) 
           : '',
@@ -101,19 +248,17 @@ export function ServicesPage() {
     }
   }, [serviceDetail, editingServiceId]);
 
-  const handleStart = async (serviceId: string) => {
-    try {
-      await startService.mutateAsync(serviceId);
-      toast.success(t('services.toast.start_success'));
-    } catch (err: any) {
-      console.error('Failed to start service:', err);
-      // Show friendly error message
-      const errorMsg = err?.response?.data?.error || err?.message || t('services.toast.start_fail_desc');
-      toast.error(t('services.toast.start_fail'), {
-        description: errorMsg,
-        duration: 6000,
-      });
-    }
+  const handleStart = (serviceId: string, serviceName: string) => {
+    // 打开启动日志弹窗，由弹窗组件负责调用 SSE 接口
+    setStartupModal({ id: serviceId, name: serviceName });
+  };
+
+  const handleStartupSuccess = () => {
+    setStartupModal(null);
+    // 刷新服务列表
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.services });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.status });
+    toast.success(t('services.toast.start_success'));
   };
 
   const handleStop = async (serviceId: string) => {
@@ -154,9 +299,6 @@ export function ServicesPage() {
         // Convert space-separated args to array
         if (serviceForm.args.trim()) {
           serviceConfig.args = serviceForm.args.trim().split(/\s+/);
-        }
-        if (serviceForm.cwd.trim()) {
-          serviceConfig.cwd = serviceForm.cwd.trim();
         }
         // Parse env JSON
         if (serviceForm.env.trim()) {
@@ -225,12 +367,11 @@ export function ServicesPage() {
       id: '',
       type: 'stdio',
       name: '',
-      description: '',
-      command: '',
-      args: '',
-      cwd: '',
-      env: '',
-      url: '',
+    description: '',
+    command: '',
+    args: '',
+    env: '',
+    url: '',
       baseUrl: '',
       headers: '',
     });
@@ -501,7 +642,7 @@ export function ServicesPage() {
                       </button>
                     ) : (
                       <button
-                        onClick={() => handleStart(service.id)}
+                        onClick={() => handleStart(service.id, service.name)}
                         disabled={startService.isPending || service.status === 'starting'}
                         className="p-2 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-emerald-500/50 dark:hover:border-emerald-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         title={t('services.button.start_tooltip')}
@@ -533,6 +674,16 @@ export function ServicesPage() {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* 启动日志弹窗 */}
+      {startupModal && (
+        <StartupLogsModal
+          serviceId={startupModal.id}
+          serviceName={startupModal.name}
+          onClose={() => setStartupModal(null)}
+          onSuccess={handleStartupSuccess}
+        />
       )}
 
       {/* 添加/编辑服务弹窗 Modal */}
@@ -621,12 +772,6 @@ export function ServicesPage() {
                         placeholder={t('services.form.args_placeholder')}
                         value={serviceForm.args}
                         onChange={(e) => setServiceForm({ ...serviceForm, args: e.target.value })}
-                      />
-                      <Input
-                        label={t('services.form.cwd')}
-                        placeholder={t('services.form.cwd_placeholder')}
-                        value={serviceForm.cwd}
-                        onChange={(e) => setServiceForm({ ...serviceForm, cwd: e.target.value })}
                       />
                       <div className="space-y-2">
                         <label className="text-xs font-medium text-gray-700 dark:text-slate-300">

@@ -114,6 +114,84 @@ app.get('/:id', async (c) => {
   }
 });
 
+import { streamSSE } from 'hono/streaming';
+
+// GET /api/services/:id/sse-start - Start a service and stream logs
+app.get('/:id/sse-start', async (c) => {
+  const id = c.req.param('id');
+  const agent = await getAgent();
+  const registry = agent.getRegistry();
+
+  return streamSSE(c, async (stream) => {
+    // 1. Send initial status
+    await stream.writeSSE({
+      event: 'status',
+      data: 'starting',
+    });
+
+    try {
+      // 2. Start the service with log streaming
+      await registry.start(id, async (logMessage) => {
+        // Stream log message to client
+        await stream.writeSSE({
+          event: 'log',
+          data: logMessage,
+        });
+      });
+
+      // Update enabled state
+      const webConfigManager = agent.getWebConfigManager();
+      await webConfigManager.updateService(id, { enabled: true });
+
+      // Reconnect Xiaozhi
+      const xiaozhi = agent.getConnection();
+      if (xiaozhi && xiaozhi.isConnected()) {
+        await xiaozhi.reconnect().catch(err => 
+          console.error('Failed to reconnect Xiaozhi:', err)
+        );
+      }
+
+      await stream.writeSSE({
+        event: 'status',
+        data: 'success',
+      });
+      
+      await stream.writeSSE({
+        event: 'log',
+        data: `Service ${id} started successfully.`,
+      });
+
+    } catch (error: any) {
+      console.error('SSE Service start error:', error);
+      const errorMessage = getFullErrorMessage(error);
+      
+      // If error message contains captured logs, stream them
+      if (errorMessage.includes('[启动日志截取]:')) {
+        const parts = errorMessage.split('[启动日志截取]:');
+        const mainError = parts[0];
+        const logs = parts[1];
+        
+        await stream.writeSSE({
+          event: 'log',
+          data: logs.trim(),
+        });
+        
+        await stream.writeSSE({
+          event: 'service-error',
+          data: mainError.trim(),
+        });
+      } else {
+        await stream.writeSSE({
+          event: 'service-error',
+          data: errorMessage,
+        });
+      }
+    } finally {
+      await stream.close();
+    }
+  });
+});
+
 // POST /api/services/:id/start - Start a service
 app.post('/:id/start', async (c) => {
   try {

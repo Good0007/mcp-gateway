@@ -36,7 +36,8 @@ export class HTTPServiceAdapter extends BaseServiceAdapter {
   /**
    * Initialize the HTTP service
    */
-  protected async doInitialize(): Promise<InitializeResult> {
+  protected async doInitialize(onLog?: (message: string) => void): Promise<InitializeResult> {
+    void onLog; // Suppress unused variable warning
     const config = this.httpConfig;
 
     try {

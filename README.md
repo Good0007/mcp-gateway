@@ -42,68 +42,26 @@ bun run dev
 open http://localhost:5174
 ```
 
-## 📋 主要功能
+## 📋 功能使用说明
 
-### 服务管理
-- ✅ 添加、编辑、删除、启动、停止服务
-- ✅ 支持环境变量和参数配置
-- ✅ 实时查看服务日志
-- ✅ 导入 Claude Desktop / VS Code MCP 配置
+### 1. 服务管理
+- **添加服务**：支持通过 Web 界面添加多种类型的 MCP 服务。
+- **配置编辑**：可编辑服务的命令、参数、环境变量等配置。
+- **状态控制**：一键启动、停止、重启服务。
+- **日志监控**：实时查看服务的标准输出和错误日志，便于调试。
+- **导入配置**：支持导入 Claude Desktop / VS Code 的 MCP 配置文件。
 
-### 环境检测
-- ✅ 检测 Node.js、npm、npx、Python、pip、uv/uvx
-- ✅ 检测 Rust、Cargo、Java、Go、Git
-- ✅ 一键安装/卸载各运行时环境
-- ✅ 自动识别 Linux 发行版包管理器（apt/apk/yum/dnf/pacman/zypper）
+### 2. 环境检测与管理
+- **运行时检测**：自动检测系统中安装的 Node.js、Python、Rust、Java、Go 等环境版本。
+- **包管理器支持**：识别 npm、pip、cargo 等包管理器状态。
+- **一键安装**：支持在界面上一键安装缺失的运行时环境（依赖于底层系统支持）。
 
-### 配置管理
-- ✅ 可视化 JSON 配置编辑
-- ✅ 配置热重载，自动应用更新
-- ✅ 运行状态持久化
+### 3. 配置管理
+- **可视化编辑**：提供 JSON 配置的可视化编辑器。
+- **热重载**：配置修改后自动应用，无需重启 Agent。
+- **持久化**：服务配置和运行状态会自动保存。
 
-## 📁 项目结构
-
-```
-mcp-agent/
-├── packages/
-│   ├── server/      # API 服务器（Hono）
-│   ├── web/         # Web 管理界面（React）
-│   ├── cli/         # 命令行工具
-│   ├── core/        # MCP 核心逻辑
-│   └── shared/      # 共享类型
-├── config/          # 配置文件
-└── docs/            # 文档
-```
-
-## ⚙️ 配置服务
-
-编辑 `config/web-config.json`：
-
-```json
-{
-  "xiaozhi": {
-    "endpoint": "wss://api.xiaozhi.me/mcp/?token=YOUR_TOKEN"
-  },
-  "services": [
-    {
-      "id": "memory",
-      "type": "stdio",
-      "name": "Memory",
-      "enabled": true,
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-memory"]
-    }
-  ]
-}
-```
-
-支持的服务类型：
-- `stdio`: 子进程通信（npx、本地脚本）
-- `embedded`: 进程内服务（性能最优）
-- `sse`: Server-Sent Events
-- `http`: REST API
-
-## � 安全配置（登录认证）
+## 🔐 安全配置（登录认证）
 
 MCP Agent 支持 Web UI 登录认证保护，默认关闭。启用后，访问 Web UI 需要登录。
 
@@ -136,30 +94,25 @@ MCP_AGENT_PASSWORD=your_secure_password
 - 使用强密码（建议至少 12 位，包含大小写字母、数字和特殊字符）
 - 建议配合 HTTPS 使用以保护传输过程中的凭据
 
-## 📖 文档
+## 📖 相关文档
 
-- [快速开始](./QUICKSTART.md) - 详细安装和配置指南
-- [架构设计](./ARCHITECTURE.md) - 项目架构和技术栈
-- [Docker 部署](./docs/DOCKER.md) - 完整 Docker 部署指南
-- [多服务配置](./docs/MULTI_SERVICES.md) - 服务配置示例
+- [Docker 部署指南](./docs/DOCKER.md) - 详细的 Docker 部署说明
+- [开发者指南](./docs/DEVELOPMENT.md) - 开发环境搭建与调试
+- [架构设计](./ARCHITECTURE.md) - 系统架构说明
 
-## 🛠️ 开发命令
+## 🛠️ 常用命令
 
 ```bash
 # 本地开发
 bun run dev              # 启动 API+Web 开发环境
-bun run dev:server       # 只启动 API Server
-bun run dev:web          # 只启动 Web 界面
 
 # 构建
 bun run build            # 构建所有包
-bun run build:full       # 完整构建（含 Web 静态文件）
 
 # Docker
 make build               # 构建 Docker 镜像
 make up                  # 启动服务
 make logs                # 查看日志
-make shell               # 进入容器
 ```
 
 ## 🤝 贡献
@@ -174,5 +127,3 @@ MIT License - 详见 [LICENSE](LICENSE)
 
 **相关链接**：
 - 🐳 [Docker Hub](https://hub.docker.com/r/kangkang223/mcp-agent)
-- 📚 [完整文档](./docs/)
-- 🐛 [问题反馈](https://github.com/your-repo/issues)

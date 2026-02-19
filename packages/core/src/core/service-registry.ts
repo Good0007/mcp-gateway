@@ -94,7 +94,13 @@ export class ServiceRegistry extends EventEmitter {
 
     // Auto-start if enabled
     if (config.enabled) {
-      await this.start(config.id);
+      try {
+        await this.start(config.id);
+      } catch (error) {
+        // Log error but don't fail registration
+        // The service will be in ERROR state which is fine
+        logger.error(`Failed to auto-start service ${config.id}`, { error });
+      }
     }
   }
 
@@ -125,7 +131,7 @@ export class ServiceRegistry extends EventEmitter {
   /**
    * Start a service
    */
-  async start(serviceId: string): Promise<void> {
+  async start(serviceId: string, onLog?: (message: string) => void): Promise<void> {
     const adapter = this.services.get(serviceId);
     if (!adapter) {
       throw new ServiceError(
@@ -136,7 +142,7 @@ export class ServiceRegistry extends EventEmitter {
     }
 
     try {
-      await adapter.initialize();
+      await adapter.initialize(onLog);
       
       // Update runtime state
       if (this.runtimeState) {
