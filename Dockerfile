@@ -55,11 +55,16 @@ RUN apk add --no-cache \
     py3-pip \
     curl \
     bash \
-    git
+    git \
+    unzip
 
-# 安装 bun (用于安装依赖)
-RUN curl -fsSL https://bun.sh/install | bash && \
-    ln -s /root/.bun/bin/bun /usr/local/bin/bun
+# 从构建阶段复制 bun（更可靠，避免安装脚本问题）
+# 在 oven/bun 镜像中，bun 位于 /usr/local/bin/
+COPY --from=builder /usr/local/bin/bun /usr/local/bin/bun
+COPY --from=builder /usr/local/bin/bunx /usr/local/bin/bunx
+
+# 验证 bun 是否可用
+RUN bun --version
 
 # 安装 uv (Python 包管理器，包含 uvx)
 RUN pip3 install --no-cache-dir uv --break-system-packages
@@ -76,7 +81,7 @@ RUN ln -sf /usr/bin/python3 /usr/local/bin/python
 WORKDIR /app
 
 # 从构建阶段复制必要文件
-# 1. 复制根目录的 package.json（包含 workspaces 配置）
+# 1. 复制根目录的 package.json 和 lock 文件（包含 workspaces 配置）
 COPY --from=builder /app/package.json ./
 
 # 2. 复制 shared 包（编译产物）
@@ -93,7 +98,7 @@ COPY --from=builder /app/packages/server/dist ./packages/server/dist
 COPY --from=builder /app/packages/server/public ./packages/server/public
 
 # 安装生产依赖（仅 dependencies，不包含 devDependencies）
-# 不复制 lock 文件，让 bun 根据 package.json 重新生成
+# 使用 lock 文件确保与构建阶段版本一致
 RUN bun install --production
 
 # 验证运行时工具（调试用，可选）
@@ -116,6 +121,9 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
+ENV MCP_AGENT_AUTH=true
+ENV MCP_AGENT_USERNAME=admin
+ENV MCP_AGENT_PASSWORD=admin123
 # Python 和工具路径
 ENV PATH="/usr/local/bin:$PATH"
 

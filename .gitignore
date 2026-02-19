@@ -24,6 +24,7 @@ config/.env
 
 # Runtime state (auto-generated)
 config/runtime-state.json
+DOCKER_HUB_README.md
 
 # IDE
 .vscode/

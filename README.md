@@ -1,18 +1,33 @@
 # MCP Agent
 
-一个强大的 MCP (Model Context Protocol) 代理服务，用于聚合多个 MCP 服务并通过统一的 WebSocket 接口暴露给小智 AI 助手。
+一个强大的 MCP (Model Context Protocol) 代理服务，用于聚合多个 MCP 服务并通过统一接口管理。支持 stdio、SSE、HTTP、Embedded 四种服务类型，提供 Web 管理界面和环境检测功能。
 
-## ✨ 特性
+[![Docker](https://img.shields.io/badge/Docker-Hub-blue?logo=docker)](https://hub.docker.com/r/kangkang223/mcp-agent)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-- ✅ **多适配器支持**: stdio、embedded、sse、http 四种服务类型
-- ✅ **动态服务管理**: 运行时加载/卸载服务，无需重启
-- ✅ **Web 管理界面**: 直观的可视化配置和管理
-- ✅ **环境检测**: 自动检测并管理 Node、Python、Rust、Java、Go 等开发环境
-- ✅ **配置热重载**: 监听配置变化，自动应用更新
-- ✅ **工具聚合**: 自动聚合所有服务的工具列表
-- ✅ **自动重连**: WebSocket 连接断开自动重连
+## ✨ 核心特性
+
+- 🔌 **多适配器支持** - stdio、embedded、sse、http 四种服务类型
+- 🎨 **Web 管理界面** - 可视化配置、日志查看、环境检测
+- 🔄 **动态服务管理** - 运行时加载/卸载，无需重启
+- 🛠️ **环境检测** - 自动检测并管理 Node、Python、Rust、Java、Go 等运行时
+- 🔐 **身份认证** - 可选的登录认证保护
+- 🐳 **多平台 Docker** - 支持 AMD64 和 ARM64 架构
 
 ## 🚀 快速开始
+
+### Docker 部署（推荐）
+
+```bash
+# 使用 Docker Compose
+docker-compose up -d
+
+# 或使用 Docker 命令
+docker run -d -p 3000:3000 kangkang223/mcp-agent:latest
+
+# 访问 Web 界面
+open http://localhost:3000
+```
 
 ### 开发模式
 
@@ -22,67 +37,42 @@ bun install
 
 # 启动开发环境（API Server + Web 界面）
 bun run dev
+
+# 访问 Web 界面
+open http://localhost:5174
 ```
 
-启动后访问 `http://localhost:5174` 即可使用。
+## 📋 主要功能
 
-### 生产部署（Docker）
+### 服务管理
+- ✅ 添加、编辑、删除、启动、停止服务
+- ✅ 支持环境变量和参数配置
+- ✅ 实时查看服务日志
+- ✅ 导入 Claude Desktop / VS Code MCP 配置
 
-```bash
-# 使用 Docker Compose（推荐）
-docker-compose up -d
+### 环境检测
+- ✅ 检测 Node.js、npm、npx、Python、pip、uv/uvx
+- ✅ 检测 Rust、Cargo、Java、Go、Git
+- ✅ 一键安装/卸载各运行时环境
+- ✅ 自动识别 Linux 发行版包管理器（apt/apk/yum/dnf/pacman/zypper）
 
-# 或使用 Docker 命令
-docker build -t mcp-agent:latest .
-docker run -d -p 3000:3000 mcp-agent:latest
-
-# 或使用 Make 命令（最简单）
-make up
-```
-
-详细部署指南：
-- 🚀 [Docker 快速开始](./DOCKER_QUICKSTART.md)
-- 📚 [完整部署文档](./docs/DOCKER.md)
-
-### 其他命令
-
-```bash
-# 生产模式
-bun run build
-bun run start
-
-# 只启动 API Server
-bun run dev:server
-
-# 只启动 Web 界面
-bun run dev:web
-```
-
-## 📋 Web 管理功能
-
-- **服务管理**: 添加、编辑、删除、启动、停止服务
-- **配置编辑**: 可视化编辑 JSON 配置和环境变量
-- **日志查看**: 实时查看服务日志
-- **环境检测**: 检测和管理开发环境依赖
-  - Node.js、npm、npx
-  - Python、pip、uv、uvx
-  - Rust、Cargo、Java、Go、Git
-  - 一键安装/卸载各环境
-- **配置导入**: 支持从 Claude Desktop 或 VS Code MCP 配置导入
-- **实时反馈**: Toast 通知提醒操作结果
+### 配置管理
+- ✅ 可视化 JSON 配置编辑
+- ✅ 配置热重载，自动应用更新
+- ✅ 运行状态持久化
 
 ## 📁 项目结构
 
 ```
 mcp-agent/
 ├── packages/
-│   ├── server/           # API 服务器
-│   ├── web/              # Web 管理界面
-│   ├── cli/              # 命令行工具
-│   ├── core/             # 核心逻辑
-│   └── shared/           # 共享类型和工具
-├── config/               # 配置文件
-└── docs/                 # 文档
+│   ├── server/      # API 服务器（Hono）
+│   ├── web/         # Web 管理界面（React）
+│   ├── cli/         # 命令行工具
+│   ├── core/        # MCP 核心逻辑
+│   └── shared/      # 共享类型
+├── config/          # 配置文件
+└── docs/            # 文档
 ```
 
 ## ⚙️ 配置服务
@@ -146,9 +136,43 @@ MCP_AGENT_PASSWORD=your_secure_password
 - 使用强密码（建议至少 12 位，包含大小写字母、数字和特殊字符）
 - 建议配合 HTTPS 使用以保护传输过程中的凭据
 
-## �📖 更多资源
+## 📖 文档
 
-- [QUICKSTART.md](./QUICKSTART.md) - 详细快速开始指南
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - 项目架构和最佳实践
-- [docs/DOCKER.md](./docs/DOCKER.md) - Docker 部署指南
-- [docs/](./docs/) - 完整文档目录
+- [快速开始](./QUICKSTART.md) - 详细安装和配置指南
+- [架构设计](./ARCHITECTURE.md) - 项目架构和技术栈
+- [Docker 部署](./docs/DOCKER.md) - 完整 Docker 部署指南
+- [多服务配置](./docs/MULTI_SERVICES.md) - 服务配置示例
+
+## 🛠️ 开发命令
+
+```bash
+# 本地开发
+bun run dev              # 启动 API+Web 开发环境
+bun run dev:server       # 只启动 API Server
+bun run dev:web          # 只启动 Web 界面
+
+# 构建
+bun run build            # 构建所有包
+bun run build:full       # 完整构建（含 Web 静态文件）
+
+# Docker
+make build               # 构建 Docker 镜像
+make up                  # 启动服务
+make logs                # 查看日志
+make shell               # 进入容器
+```
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 📄 许可证
+
+MIT License - 详见 [LICENSE](LICENSE)
+
+---
+
+**相关链接**：
+- 🐳 [Docker Hub](https://hub.docker.com/r/kangkang223/mcp-agent)
+- 📚 [完整文档](./docs/)
+- 🐛 [问题反馈](https://github.com/your-repo/issues)

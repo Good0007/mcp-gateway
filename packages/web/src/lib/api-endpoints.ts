@@ -10,7 +10,6 @@ import type {
   ToolListResponse,
   ToolCallRequestBody,
   ToolCallResponse,
-  PluginMetadata,
 } from '@mcp-agent/shared';
 import { apiClient } from './api';
 
@@ -38,9 +37,78 @@ export const agentApi = {
   callTool: (request: ToolCallRequestBody) =>
     apiClient.post<ToolCallResponse>('/api/tools/call', request),
 
-  // Plugins
-  getPlugins: () =>
-    apiClient.get<{ plugins: PluginMetadata[] }>('/api/plugins'),
+  // Plugins (proxy through server to avoid CORS)
+  getPlugins: (params?: {
+    wd?: string;
+    type?: string;
+    pn?: number;
+    lg?: string;
+    pl?: number;
+  }) => {
+    const query = new URLSearchParams();
+    query.append('wd', params?.wd || 'all');
+    query.append('type', params?.type || 'tag');
+    query.append('pn', (params?.pn || 0).toString());
+    query.append('lg', params?.lg || 'zh');
+    query.append('pl', (params?.pl || 100).toString());
+    
+    return apiClient.get<{
+      category: Array<{
+        key: string;
+        name: string;
+        value: Array<{ key: string; name: string; total: number }>;
+        total: number;
+      }>;
+      count: number;
+      mcpList: Array<{
+        query: string;
+        total: number;
+        servers: Array<{
+          id: string;
+          serverName: string;
+          description: string;
+          serverIcon: string;
+          serverUrl: string;
+          labels: string[];
+          creator: string;
+          updateTime: string;
+          star: number;
+          favoritesNumber: number;
+          level: number;
+        }>;
+      }>;
+    }>(`/api/plugins?${query}`);
+  },
+
+  getPluginDetail: (id: string, lg: string = 'zh') =>
+    apiClient.get<{
+      detail: {
+        id: string;
+        serverName: string;
+        description: string;
+        serverIcon: string;
+        serverUrl: string;
+        labels: string[];
+        abstract: Array<{
+          key: string;
+          name: string;
+          value: string;
+        }>;
+        creator: string;
+        updateTime: string;
+        star: number;
+        favoritesNumber: number;
+        level: string;
+        levelDesc: string;
+        levelDetail: Array<{
+          key: string;
+          name: string;
+          status: string;
+          description: string;
+        }>;
+      };
+      recommended: any[];
+    }>(`/api/plugins/detail/${id}?lg=${lg}`),
 
   // Logs
   getLogs: (params?: {

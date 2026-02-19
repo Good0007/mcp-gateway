@@ -88,13 +88,22 @@ app.post('/login', async (c) => {
       });
 
       // Set cookie (httpOnly for security)
-      setCookie(c, 'session_id', sessionId, {
+      // secure: only enable for HTTPS connections (not for http://localhost during development)
+      const cookieOptions: any = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
+        secure: false, // Only secure in HTTPS, allows http://localhost for testing
+        sameSite: 'Lax', // Changed from 'Strict' to 'Lax' for better compatibility with port forwarding
         maxAge: SESSION_TIMEOUT / 1000, // maxAge is in seconds
         path: '/',
-      });
+      };
+      
+      // Allow custom domain for cross-domain cookie sharing (optional)
+      // If MCP_AGENT_COOKIE_DOMAIN is set, use it. Otherwise, browser auto-detects based on current hostname
+      if (ENV.COOKIE_DOMAIN) {
+        cookieOptions.domain = ENV.COOKIE_DOMAIN;
+      }
+      
+      setCookie(c, 'session_id', sessionId, cookieOptions);
 
       return c.json({
         success: true,

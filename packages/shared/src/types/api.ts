@@ -65,7 +65,45 @@ export interface ToolCallResponse {
 }
 
 /**
- * Plugin metadata (for marketplace)
+ * Plugin service (for marketplace)
+ */
+export interface PluginService {
+  id: string;
+  type: 'stdio' | 'http' | 'sse';
+  name: string;
+  zhName: string;
+  description: string;
+  zhDesc: string;
+  picUrl: string;
+  // For SSE/HTTP
+  url?: string;
+  // For stdio
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+}
+
+/**
+ * Plugin category (for marketplace)
+ */
+export interface PluginCategory {
+  category: string;
+  name: string;
+  zhName: string;
+  description?: string;
+  tags: string[];
+  services: PluginService[];
+}
+
+/**
+ * Plugin list response
+ */
+export interface PluginListResponse {
+  categories: PluginCategory[];
+}
+
+/**
+ * Legacy Plugin metadata (deprecated)
  */
 export interface PluginMetadata {
   id: string;
@@ -80,16 +118,8 @@ export interface PluginMetadata {
   tags: string[];
   repository?: string;
   homepage?: string;
-  installCommand?: string; // For stdio plugins
-  config?: Partial<ServiceConfig>; // Pre-filled config template
-}
-
-/**
- * Plugin list response
- */
-export interface PluginListResponse {
-  plugins: PluginMetadata[];
-  total: number;
+  installCommand?: string;
+  config?: Partial<ServiceConfig>;
 }
 
 /**
