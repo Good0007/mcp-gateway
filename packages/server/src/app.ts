@@ -60,7 +60,6 @@ if (process.env.NODE_ENV === 'production') {
   if (fs.existsSync(publicDir)) {
     // Serve static assets (CSS, JS, images, etc.)
     app.use('/assets/*', serveStatic({ root: publicDir }));
-    app.use('/vite.svg', serveStatic({ root: publicDir }));
     
     // Fallback to index.html for SPA routes (but not for /api/* or /mcp/*)
     app.get('*', (c) => {

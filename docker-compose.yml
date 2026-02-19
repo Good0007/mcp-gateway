@@ -13,9 +13,9 @@ services:
       - PORT=3000
       - HOST=0.0.0.0
       # 认证配置 (Authentication Configuration)
-      - MCP_AGENT_AUTH=false  # 设置为 true 启用登录认证
+      - MCP_AGENT_AUTH=true  # 设置为 true 启用登录认证
       - MCP_AGENT_USERNAME=admin      # 登录用户名
-      - MCP_AGENT_PASSWORD=admin      # 登录密码
+      - MCP_AGENT_PASSWORD=admin123     # 登录密码
       # 如果需要，可以通过环境变量传入配置
       # - MCP_SERVER_TOKEN=${MCP_SERVER_TOKEN}
     volumes:

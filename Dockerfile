@@ -45,7 +45,8 @@ RUN ls -la packages/server/dist/ && \
 # Stage 2: 生产阶段 (Production Stage)
 # ===================================
 FROM node:24-alpine AS production
-
+# 替换国内源
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 # 安装必要的系统依赖和运行时工具
 RUN apk add --no-cache \
     ca-certificates \
@@ -53,9 +54,6 @@ RUN apk add --no-cache \
     python3 \
     py3-pip \
     curl \
-    go \
-    rust \
-    cargo \
     bash \
     git
 
@@ -72,28 +70,27 @@ ENV TZ=Asia/Shanghai
 # 设置 Python 别名（确保 python 命令可用）
 RUN ln -sf /usr/bin/python3 /usr/local/bin/python
 
-# 创建非 root 用户
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+# 注意：以 root 运行以支持动态安装运行时环境（apk add 等命令）
+# 这是开发工具，用于可信环境，安全边界在容器层面
 
 WORKDIR /app
 
 # 从构建阶段复制必要文件
 # 1. 复制根目录的 package.json（包含 workspaces 配置）
-COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
+COPY --from=builder /app/package.json ./
 
 # 2. 复制 shared 包（编译产物）
-COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/package.json ./packages/shared/
-COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 
 # 3. 复制 core 包（编译产物）
-COPY --from=builder --chown=nodejs:nodejs /app/packages/core/package.json ./packages/core/
-COPY --from=builder --chown=nodejs:nodejs /app/packages/core/dist ./packages/core/dist
+COPY --from=builder /app/packages/core/package.json ./packages/core/
+COPY --from=builder /app/packages/core/dist ./packages/core/dist
 
 # 4. 复制 server 包（编译产物 + 静态文件）
-COPY --from=builder --chown=nodejs:nodejs /app/packages/server/package.json ./packages/server/
-COPY --from=builder --chown=nodejs:nodejs /app/packages/server/dist ./packages/server/dist
-COPY --from=builder --chown=nodejs:nodejs /app/packages/server/public ./packages/server/public
+COPY --from=builder /app/packages/server/package.json ./packages/server/
+COPY --from=builder /app/packages/server/dist ./packages/server/dist
+COPY --from=builder /app/packages/server/public ./packages/server/public
 
 # 安装生产依赖（仅 dependencies，不包含 devDependencies）
 # 不复制 lock 文件，让 bun 根据 package.json 重新生成
@@ -104,20 +101,13 @@ RUN echo "=== 验证运行时工具 ===" && \
     node --version && \
     npm --version && \
     npx --version && \
-    go version && \
-    rustc --version && \
-    cargo --version && \
     bun --version && \
     python3 --version && \
     uv --version && \
     echo "✅ 所有工具已就绪"
 
-# 创建必要的目录并设置权限
-RUN mkdir -p /app/config /app/data /app/logs && \
-    chown -R nodejs:nodejs /app
-
-# 切换到非 root 用户
-USER nodejs
+# 创建必要的目录
+RUN mkdir -p /app/config /app/data /app/logs
 
 # 暴露端口
 EXPOSE 3000

@@ -101,10 +101,23 @@ interface EnvironmentCheck {
     mac?: string;
     linux?: string;
     windows?: string;
+    // 支持不同 Linux 发行版的包管理器
+    apk?: string;
+    apt?: string;
+    yum?: string;
+    dnf?: string;
+    pacman?: string;
+    zypper?: string;
   };
   uninstallCommands?: {
     mac?: string;
     linux?: string;
+    apk?: string;
+    apt?: string;
+    yum?: string;
+    dnf?: string;
+    pacman?: string;
+    zypper?: string;
   };
   required: boolean;
 }
@@ -121,10 +134,21 @@ const ENVIRONMENTS: Omit<EnvironmentCheck, 'installed' | 'version'>[] = [
       mac: 'brew install node',
       linux: 'curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs',
       windows: 'winget install OpenJS.NodeJS.LTS',
+      apk: 'apk add --no-cache nodejs npm',
+      apt: 'curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs',
+      yum: 'curl -fsSL https://rpm.nodesource.com/setup_lts.x | sudo bash - && sudo yum install -y nodejs',
+      dnf: 'curl -fsSL https://rpm.nodesource.com/setup_lts.x | sudo bash - && sudo dnf install -y nodejs',
+      pacman: 'sudo pacman -S --noconfirm nodejs npm',
+      zypper: 'sudo zypper install -y nodejs20',
     },
     uninstallCommands: {
       mac: 'brew uninstall node',
-      linux: 'sudo apt-get remove -y nodejs',
+      apk: 'apk del nodejs npm',
+      apt: 'sudo apt-get remove -y nodejs',
+      yum: 'sudo yum remove -y nodejs',
+      dnf: 'sudo dnf remove -y nodejs',
+      pacman: 'sudo pacman -R --noconfirm nodejs npm',
+      zypper: 'sudo zypper remove -y nodejs20',
     },
     required: true,
   },
@@ -157,10 +181,21 @@ const ENVIRONMENTS: Omit<EnvironmentCheck, 'installed' | 'version'>[] = [
       mac: 'brew install python@3',
       linux: 'sudo apt-get update && sudo apt-get install -y python3 python3-pip',
       windows: 'winget install Python.Python.3.12',
+      apk: 'apk add --no-cache python3 py3-pip',
+      apt: 'sudo apt-get update && sudo apt-get install -y python3 python3-pip',
+      yum: 'sudo yum install -y python3 python3-pip',
+      dnf: 'sudo dnf install -y python3 python3-pip',
+      pacman: 'sudo pacman -S --noconfirm python python-pip',
+      zypper: 'sudo zypper install -y python3 python3-pip',
     },
     uninstallCommands: {
       mac: 'brew uninstall python@3',
-      linux: 'sudo apt-get remove -y python3 python3-pip',
+      apk: 'apk del python3 py3-pip',
+      apt: 'sudo apt-get remove -y python3 python3-pip',
+      yum: 'sudo yum remove -y python3 python3-pip',
+      dnf: 'sudo dnf remove -y python3 python3-pip',
+      pacman: 'sudo pacman -R --noconfirm python python-pip',
+      zypper: 'sudo zypper remove -y python3 python3-pip',
     },
     required: false,
   },
@@ -175,6 +210,12 @@ const ENVIRONMENTS: Omit<EnvironmentCheck, 'installed' | 'version'>[] = [
       mac: 'python3 -m ensurepip --upgrade',
       linux: 'sudo apt-get install -y python3-pip',
       windows: 'python -m ensurepip --upgrade',
+      apk: 'apk add --no-cache py3-pip',
+      apt: 'sudo apt-get install -y python3-pip',
+      yum: 'sudo yum install -y python3-pip',
+      dnf: 'sudo dnf install -y python3-pip',
+      pacman: 'sudo pacman -S --noconfirm python-pip',
+      zypper: 'sudo zypper install -y python3-pip',
     },
     required: false,
   },
@@ -216,10 +257,21 @@ const ENVIRONMENTS: Omit<EnvironmentCheck, 'installed' | 'version'>[] = [
       mac: 'brew install git',
       linux: 'sudo apt-get install -y git',
       windows: 'winget install Git.Git',
+      apk: 'apk add --no-cache git',
+      apt: 'sudo apt-get install -y git',
+      yum: 'sudo yum install -y git',
+      dnf: 'sudo dnf install -y git',
+      pacman: 'sudo pacman -S --noconfirm git',
+      zypper: 'sudo zypper install -y git',
     },
     uninstallCommands: {
       mac: 'brew uninstall git',
-      linux: 'sudo apt-get remove -y git',
+      apk: 'apk del git',
+      apt: 'sudo apt-get remove -y git',
+      yum: 'sudo yum remove -y git',
+      dnf: 'sudo dnf remove -y git',
+      pacman: 'sudo pacman -R --noconfirm git',
+      zypper: 'sudo zypper remove -y git',
     },
     required: false,
   },
@@ -261,10 +313,21 @@ const ENVIRONMENTS: Omit<EnvironmentCheck, 'installed' | 'version'>[] = [
       mac: 'brew install openjdk@17',
       linux: 'sudo apt-get update && sudo apt-get install -y openjdk-17-jdk',
       windows: 'winget install Oracle.JDK.17',
+      apk: 'apk add --no-cache openjdk17',
+      apt: 'sudo apt-get update && sudo apt-get install -y openjdk-17-jdk',
+      yum: 'sudo yum install -y java-17-openjdk',
+      dnf: 'sudo dnf install -y java-17-openjdk',
+      pacman: 'sudo pacman -S --noconfirm jdk17-openjdk',
+      zypper: 'sudo zypper install -y java-17-openjdk',
     },
     uninstallCommands: {
       mac: 'brew uninstall openjdk@17',
-      linux: 'sudo apt-get remove -y openjdk-17-jdk',
+      apk: 'apk del openjdk17',
+      apt: 'sudo apt-get remove -y openjdk-17-jdk',
+      yum: 'sudo yum remove -y java-17-openjdk',
+      dnf: 'sudo dnf remove -y java-17-openjdk',
+      pacman: 'sudo pacman -R --noconfirm jdk17-openjdk',
+      zypper: 'sudo zypper remove -y java-17-openjdk',
     },
     required: false,
   },
@@ -288,10 +351,21 @@ const ENVIRONMENTS: Omit<EnvironmentCheck, 'installed' | 'version'>[] = [
       mac: 'brew install go',
       linux: 'sudo apt-get update && sudo apt-get install -y golang',
       windows: 'winget install GoLang.Go',
+      apk: 'apk add --no-cache go',
+      apt: 'sudo apt-get update && sudo apt-get install -y golang',
+      yum: 'sudo yum install -y golang',
+      dnf: 'sudo dnf install -y golang',
+      pacman: 'sudo pacman -S --noconfirm go',
+      zypper: 'sudo zypper install -y go',
     },
     uninstallCommands: {
       mac: 'brew uninstall go',
-      linux: 'sudo apt-get remove -y golang',
+      apk: 'apk del go',
+      apt: 'sudo apt-get remove -y golang',
+      yum: 'sudo yum remove -y golang',
+      dnf: 'sudo dnf remove -y golang',
+      pacman: 'sudo pacman -R --noconfirm go',
+      zypper: 'sudo zypper remove -y go',
     },
     required: false,
   },
@@ -301,6 +375,8 @@ export function EnvironmentPage() {
   const [environments, setEnvironments] = useState<EnvironmentCheck[]>([]);
   const [checking, setChecking] = useState(true);
   const [platform, setPlatform] = useState<'mac' | 'linux' | 'windows'>('mac');
+  const [packageManager, setPackageManager] = useState<'apk' | 'apt' | 'yum' | 'dnf' | 'pacman' | 'zypper' | 'unknown'>('unknown');
+  const [linuxDistro, setLinuxDistro] = useState<string>('');
   
   // 日志模态框状态
   const [logModal, setLogModal] = useState({
@@ -336,6 +412,13 @@ export function EnvironmentPage() {
         setPlatform(data.os);
       }
       
+      // 如果是 Linux，设置发行版和包管理器信息
+      if (data.os === 'linux' && data.linux) {
+        setLinuxDistro(data.linux.distro);
+        setPackageManager(data.linux.packageManager);
+        console.log('Detected Linux distro:', data.linux.distro, 'Package manager:', data.linux.packageManager);
+      }
+      
       const checkedEnvs: EnvironmentCheck[] = ENVIRONMENTS.map(env => ({
         ...env,
         installed: data.environments?.[env.id]?.installed || false,
@@ -361,25 +444,35 @@ export function EnvironmentPage() {
   };
 
   const handleInstall = async (env: EnvironmentCheck) => {
-    const command = env.installCommands?.[platform];
+    // 优先使用包管理器特定的命令，然后回退到平台通用命令
+    let command: string | undefined;
+    
+    if (platform === 'linux' && packageManager !== 'unknown' && env.installCommands?.[packageManager]) {
+      command = env.installCommands[packageManager];
+    } else {
+      command = env.installCommands?.[platform];
+    }
     
     if (!command) {
+      const pmInfo = packageManager !== 'unknown' ? ` (${packageManager})` : '';
       toast.error('无法安装', {
-        description: `当前平台 (${platform}) 不支持自动安装，请访问官网手动安装`,
+        description: `当前平台 (${platform}${pmInfo}) 不支持自动安装，请访问官网手动安装`,
       });
       return;
     }
 
     // 打开日志模态框
+    const pmInfo = packageManager !== 'unknown' ? ` [${packageManager}]` : '';
     setLogModal({
       isOpen: true,
       title: `正在安装 ${env.name}`,
       logs: [
-        `平台：${platform}`,
+        `平台：${platform}${pmInfo}`,
+        linuxDistro ? `发行版：${linuxDistro}` : '',
         `命令：${command}`,
         '',
         '开始执行...',
-      ],
+      ].filter(Boolean),
       isRunning: true,
     });
 
@@ -463,7 +556,21 @@ export function EnvironmentPage() {
   };
 
   const handleUninstall = async (env: EnvironmentCheck) => {
-    const command = platform !== 'windows' ? env.uninstallCommands?.[platform] : undefined;
+    if (platform === 'windows') {
+      toast.error('无法卸载', {
+        description: '当前环境不支持自动卸载，请手动卸载',
+      });
+      return;
+    }
+    
+    // 优先使用包管理器特定的命令，然后回退到平台通用命令
+    let command: string | undefined;
+    
+    if (platform === 'linux' && packageManager !== 'unknown' && env.uninstallCommands?.[packageManager]) {
+      command = env.uninstallCommands[packageManager];
+    } else {
+      command = env.uninstallCommands?.[platform];
+    }
     
     if (!command) {
       toast.error('无法卸载', {
@@ -473,15 +580,17 @@ export function EnvironmentPage() {
     }
 
     // 打开日志模态框
+    const pmInfo = packageManager !== 'unknown' ? ` [${packageManager}]` : '';
     setLogModal({
       isOpen: true,
       title: `正在卸载 ${env.name}`,
       logs: [
-        `平台：${platform}`,
+        `平台：${platform}${pmInfo}`,
+        linuxDistro ? `发行版：${linuxDistro}` : '',
         `命令：${command}`,
         '',
         '开始执行...',
-      ],
+      ].filter(Boolean),
       isRunning: true,
     });
 
@@ -702,29 +811,53 @@ export function EnvironmentPage() {
                             </a>
                           </div>
                           {/* 推荐安装命令 */}
-                          {!env.installed && env.installCommands?.[platform] && (
-                            <div className="flex items-start gap-2 text-[11px] bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded px-2 py-1.5">
-                              <span className="text-blue-700 dark:text-blue-400 font-medium whitespace-nowrap">推荐:</span>
-                              <code className="text-gray-700 dark:text-slate-300 break-all flex-1">
-                                {env.installCommands[platform]}
-                              </code>
-                            </div>
-                          )}
+                          {!env.installed && (() => {
+                            // 优先显示包管理器特定的命令
+                            let command: string | undefined;
+                            if (platform === 'linux' && packageManager !== 'unknown' && env.installCommands?.[packageManager]) {
+                              command = env.installCommands[packageManager];
+                            } else {
+                              command = env.installCommands?.[platform];
+                            }
+                            
+                            if (!command) return null;
+                            
+                            return (
+                              <div className="flex items-start gap-2 text-[11px] bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded px-2 py-1.5">
+                                <span className="text-blue-700 dark:text-blue-400 font-medium whitespace-nowrap">推荐:</span>
+                                <code className="text-gray-700 dark:text-slate-300 break-all flex-1">
+                                  {command}
+                                </code>
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {/* 操作按钮 */}
                         <div className="flex gap-2">
-                          {!env.installed && env.installCommands?.[platform] && (
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              onClick={() => handleInstall(env)}
-                              className="gap-1"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                              安装
-                            </Button>
-                          )}
+                          {!env.installed && (() => {
+                            // 优先检查包管理器特定的命令
+                            let hasCommand = false;
+                            if (platform === 'linux' && packageManager !== 'unknown' && env.installCommands?.[packageManager]) {
+                              hasCommand = true;
+                            } else if (env.installCommands?.[platform]) {
+                              hasCommand = true;
+                            }
+                            
+                            if (!hasCommand) return null;
+                            
+                            return (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => handleInstall(env)}
+                                className="gap-1"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                                安装
+                              </Button>
+                            );
+                          })()}
                         </div>
                       </div>
                     </CardContent>
@@ -786,40 +919,76 @@ export function EnvironmentPage() {
                             </a>
                           </div>
                           {/* 推荐安装命令 */}
-                          {!env.installed && env.installCommands?.[platform] && (
-                            <div className="flex items-start gap-2 text-[11px] bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded px-2 py-1.5">
-                              <span className="text-blue-700 dark:text-blue-400 font-medium whitespace-nowrap">推荐:</span>
-                              <code className="text-gray-700 dark:text-slate-300 break-all flex-1">
-                                {env.installCommands[platform]}
-                              </code>
-                            </div>
-                          )}
+                          {!env.installed && (() => {
+                            // 优先显示包管理器特定的命令
+                            let command: string | undefined;
+                            if (platform === 'linux' && packageManager !== 'unknown' && env.installCommands?.[packageManager]) {
+                              command = env.installCommands[packageManager];
+                            } else {
+                              command = env.installCommands?.[platform];
+                            }
+                            
+                            if (!command) return null;
+                            
+                            return (
+                              <div className="flex items-start gap-2 text-[11px] bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded px-2 py-1.5">
+                                <span className="text-blue-700 dark:text-blue-400 font-medium whitespace-nowrap">推荐:</span>
+                                <code className="text-gray-700 dark:text-slate-300 break-all flex-1">
+                                  {command}
+                                </code>
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {/* 操作按钮 */}
                         <div className="flex gap-2">
-                          {env.installed && platform !== 'windows' && env.uninstallCommands?.[platform] && (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => handleUninstall(env)}
-                              className="gap-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              卸载
-                            </Button>
-                          )}
-                          {!env.installed && env.installCommands?.[platform] && (
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              onClick={() => handleInstall(env)}
-                              className="gap-1"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                              安装
-                            </Button>
-                          )}
+                          {env.installed && platform !== 'windows' && (() => {
+                            // 优先检查包管理器特定的命令
+                            let hasCommand = false;
+                            if (platform === 'linux' && packageManager !== 'unknown' && env.uninstallCommands?.[packageManager]) {
+                              hasCommand = true;
+                            } else if (env.uninstallCommands?.[platform]) {
+                              hasCommand = true;
+                            }
+                            
+                            if (!hasCommand) return null;
+                            
+                            return (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => handleUninstall(env)}
+                                className="gap-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                卸载
+                              </Button>
+                            );
+                          })()}
+                          {!env.installed && (() => {
+                            // 优先检查包管理器特定的命令
+                            let hasCommand = false;
+                            if (platform === 'linux' && packageManager !== 'unknown' && env.installCommands?.[packageManager]) {
+                              hasCommand = true;
+                            } else if (env.installCommands?.[platform]) {
+                              hasCommand = true;
+                            }
+                            
+                            if (!hasCommand) return null;
+                            
+                            return (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => handleInstall(env)}
+                                className="gap-1"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                                安装
+                              </Button>
+                            );
+                          })()}
                         </div>
                       </div>
                     </CardContent>

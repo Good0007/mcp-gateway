@@ -7,6 +7,7 @@ import { Hono } from 'hono';
 import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import * as os from 'os';
+import * as fs from 'fs';
 
 const execAsync = promisify(exec);
 const app = new Hono();
@@ -19,6 +20,69 @@ function detectOS(): 'mac' | 'linux' | 'windows' {
   if (platform === 'darwin') return 'mac';
   if (platform === 'win32') return 'windows';
   return 'linux';
+}
+
+/**
+ * Detect Linux distribution and package manager
+ */
+async function detectLinuxDistro(): Promise<{
+  distro: string;
+  version: string;
+  packageManager: 'apk' | 'apt' | 'yum' | 'dnf' | 'pacman' | 'zypper' | 'unknown';
+}> {
+  try {
+    // Read /etc/os-release file
+    const osReleaseContent = await fs.promises.readFile('/etc/os-release', 'utf-8');
+    const lines = osReleaseContent.split('\n');
+    
+    let distro = 'unknown';
+    let version = '';
+    let id = '';
+    let idLike = '';
+    
+    for (const line of lines) {
+      if (line.startsWith('NAME=')) {
+        distro = line.substring(5).replace(/"/g, '');
+      } else if (line.startsWith('VERSION=')) {
+        version = line.substring(8).replace(/"/g, '');
+      } else if (line.startsWith('ID=')) {
+        id = line.substring(3).replace(/"/g, '');
+      } else if (line.startsWith('ID_LIKE=')) {
+        idLike = line.substring(8).replace(/"/g, '');
+      }
+    }
+    
+    // Detect package manager based on distro ID
+    let packageManager: 'apk' | 'apt' | 'yum' | 'dnf' | 'pacman' | 'zypper' | 'unknown' = 'unknown';
+    
+    const idLower = id.toLowerCase();
+    const idLikeLower = idLike.toLowerCase();
+    
+    if (idLower.includes('alpine')) {
+      packageManager = 'apk';
+    } else if (idLower.includes('debian') || idLower.includes('ubuntu') || idLikeLower.includes('debian')) {
+      packageManager = 'apt';
+    } else if (idLower.includes('fedora') || idLower.includes('rhel') || idLower.includes('centos')) {
+      // Check if dnf is available (newer versions)
+      try {
+        await execAsync('which dnf', { timeout: 1000 });
+        packageManager = 'dnf';
+      } catch {
+        packageManager = 'yum';
+      }
+    } else if (idLower.includes('arch') || idLikeLower.includes('arch')) {
+      packageManager = 'pacman';
+    } else if (idLower.includes('opensuse') || idLower.includes('suse') || idLikeLower.includes('suse')) {
+      packageManager = 'zypper';
+    } else if (idLikeLower.includes('fedora') || idLikeLower.includes('rhel')) {
+      packageManager = 'dnf';
+    }
+    
+    return { distro, version, packageManager };
+  } catch (error) {
+    console.error('Failed to detect Linux distro:', error);
+    return { distro: 'Linux', version: '', packageManager: 'unknown' };
+  }
 }
 
 /**
@@ -38,6 +102,12 @@ async function checkCommand(command: string): Promise<{ installed: boolean; vers
 app.get('/check', async (c) => {
   try {
     const currentOS = detectOS();
+    
+    // Detect Linux distro if on Linux
+    let linuxInfo = null;
+    if (currentOS === 'linux') {
+      linuxInfo = await detectLinuxDistro();
+    }
     
     // Adjust commands based on OS
     const checks = currentOS === 'windows' 
@@ -85,6 +155,7 @@ app.get('/check', async (c) => {
       success: true,
       environments,
       os: currentOS,
+      linux: linuxInfo,
     });
   } catch (error: any) {
     console.error('Environment check error:', error);

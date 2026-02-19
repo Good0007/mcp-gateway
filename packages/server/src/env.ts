@@ -30,7 +30,7 @@ export const ENV = {
   AUTH_ENABLED: process.env.MCP_AGENT_AUTH?.toLowerCase() === 'true',
   AUTH_USERNAME: process.env.MCP_AGENT_USERNAME || 'admin',
   AUTH_PASSWORD: process.env.MCP_AGENT_PASSWORD || 'admin',
-  PORT: parseInt(process.env.MCP_AGENT_PORT || '3001', 10),
+  PORT: parseInt(process.env.PORT || '3001', 10),
   NODE_ENV: process.env.NODE_ENV || 'development',
 };
 
