@@ -6,7 +6,7 @@ import { useServices, useStartService, useStopService, useDeleteService, useAddS
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader, Play, Square, AlertCircle, Settings, Plus, Trash2, PlayCircle, StopCircle, X, Edit, Upload, CheckCircle2, Terminal, Wrench } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import type { MCPServiceStatus, Tool } from '@mcp-agent/shared';
+import type { MCPServiceStatus, Tool } from '@mcp-gateway/shared';
 import { parseMCPConfig } from '@/utils/mcp-config-parser';
 import { toast } from 'sonner';
 import { useTranslation } from '@/hooks/useI18n';

@@ -9,7 +9,7 @@ import { useTranslation } from '@/hooks/useI18n';
 import { Loader, CheckCircle2, XCircle, RefreshCw, Zap, Wrench, Settings, Loader2, Plus, Trash2, ExternalLink, ChevronDown, Play, Square, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from '@/lib/toast';
-import type { Tool } from '@mcp-agent/shared';
+import type { Tool } from '@mcp-gateway/shared';
 
 interface ToolWithService extends Tool {
   serviceId?: string;

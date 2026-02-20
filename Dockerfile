@@ -1,5 +1,5 @@
 # ===================================
-# MCP Agent - Docker 多阶段构建
+# Mcp Gateway - Docker 多阶段构建
 # ===================================
 # 
 # 运行时工具清单:
@@ -54,9 +54,7 @@ RUN apk add --no-cache \
     python3 \
     py3-pip \
     curl \
-    bash \
-    git \
-    unzip
+    bash
 
 # 从构建阶段复制 bun（更可靠，避免安装脚本问题）
 # 在 oven/bun 镜像中，bun 位于 /usr/local/bin/
@@ -121,9 +119,9 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
-ENV MCP_AGENT_AUTH=true
-ENV MCP_AGENT_USERNAME=admin
-ENV MCP_AGENT_PASSWORD=admin123
+ENV MCP_GATEWAY_AUTH=true
+ENV MCP_GATEWAY_USERNAME=admin
+ENV MCP_GATEWAY_PASSWORD=admin123
 # Python 和工具路径
 ENV PATH="/usr/local/bin:$PATH"
 

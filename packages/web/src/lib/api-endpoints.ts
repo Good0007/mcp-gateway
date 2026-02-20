@@ -10,7 +10,7 @@ import type {
   ToolListResponse,
   ToolCallRequestBody,
   ToolCallResponse,
-} from '@mcp-agent/shared';
+} from '@mcp-gateway/shared';
 import { apiClient } from './api';
 
 export const agentApi = {

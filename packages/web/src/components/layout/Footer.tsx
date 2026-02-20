@@ -13,7 +13,7 @@ export function Footer() {
     <footer className="border-t border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 px-8">
       <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 text-sm">
         <div className="flex items-center gap-2 text-gray-500 dark:text-slate-400">
-          <span>© 2026 MCP Agent</span>
+          <span>© 2026 Mcp Gateway</span>
           <span className="text-gray-300 dark:text-slate-700">|</span>
           <span>v1.0.0</span>
         </div>

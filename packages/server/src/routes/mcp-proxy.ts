@@ -11,7 +11,7 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { getAgent } from '../agent.js';
-import { AgentEvent } from '@mcp-agent/core';
+import { AgentEvent } from '@mcp-gateway/core';
 
 const app = new Hono();
 

@@ -5,7 +5,7 @@
 
 import { Hono } from 'hono';
 import { getAgent } from '../agent.js';
-import type { ServiceListResponse, ServiceDetailResponse, ServiceConfig } from '@mcp-agent/shared';
+import type { ServiceListResponse, ServiceDetailResponse, ServiceConfig } from '@mcp-gateway/shared';
 
 /**
  * Extract full error message including cause chain

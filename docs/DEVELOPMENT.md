@@ -1,53 +1,8 @@
-# 开发者指南
+# Mcp Gateway 开发者指南
 
 > 面向想要贡献代码或深度定制的开发者
 
-## � 常见问题诊断
-
-### ECONNREFUSED 错误
-
-如果看到 `[vite] http proxy error` 或 `AggregateError [ECONNREFUSED]` 错误：
-
-**原因**：前端无法连接到后端服务器（端口 3001）
-
-**解决方案**：
-
-```bash
-# 方案 1：分别启动（推荐）
-# 终端 1
-cd packages/server
-npm run dev    # 或 bun run dev
-
-# 终端 2  
-cd packages/web
-npm run dev    # 或 bun run dev
-
-# 方案 2：检查端口占用
-lsof -ti :3001 | xargs kill -9  # macOS/Linux
-```
-
-### 安装服务死循环
-
-**已修复**：立即清除选中状态，添加缓存时间
-
-如果仍遇到问题：
-1. 清除浏览器缓存
-2. 重启开发服务器
-3. 检查 Network 标签查看请求循环
-
-### 验证服务正常运行
-
-```bash
-# 检查后端健康状态
-curl http://localhost:3001/health
-
-# 访问前端
-open http://localhost:5174
-```
-
----
-
-## �🛠️ 开发环境设置
+## 🛠️ 开发环境设置
 
 ### 前置要求
 
@@ -59,8 +14,8 @@ open http://localhost:5174
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/your-repo/mcp-agent.git
-cd mcp-agent
+git clone https://github.com/your-repo/mcp-gateway.git
+cd mcp-gateway
 
 # 2. 安装依赖（所有包）
 bun install
@@ -72,7 +27,7 @@ bun run dev
 ## 📁 项目结构详解
 
 ```
-mcp-agent/
+mcp-gateway/
 ├── packages/
 │   ├── shared/              # 共享类型和常量
 │   │   └── src/
@@ -100,7 +55,7 @@ mcp-agent/
 │   │       ├── hooks/       # React Hooks
 │   │       └── store/       # 状态管理
 │   │
-│   └── cli/                 # 命令行工具（TODO）
+│   └── cli/                 # 命令行工具
 │
 ├── config/                  # 配置文件目录
 │   ├── web-config.json      # 服务配置
@@ -313,10 +268,10 @@ describe('API Integration', () => {
 
 ```bash
 # 构建镜像
-docker build -t mcp-agent:dev .
+docker build -t mcp-gateway:dev .
 
 # 运行容器
-docker run -d -p 3000:3000 mcp-agent:dev
+docker run -d -p 3000:3000 mcp-gateway:dev
 
 # 查看日志
 docker logs -f <container_id>
@@ -443,12 +398,12 @@ bun version major  # 0.1.0 → 1.0.0
 
 ```bash
 # 构建并标记版本
-docker build -t kangkang223/mcp-agent:1.0.0 .
-docker tag kangkang223/mcp-agent:1.0.0 kangkang223/mcp-agent:latest
+docker build -t kangkang223/mcp-gateway:1.0.0 .
+docker tag kangkang223/mcp-gateway:1.0.0 kangkang223/mcp-gateway:latest
 
 # 推送到 Docker Hub
-docker push kangkang223/mcp-agent:1.0.0
-docker push kangkang223/mcp-agent:latest
+docker push kangkang223/mcp-gateway:1.0.0
+docker push kangkang223/mcp-gateway:latest
 ```
 
 ### 3. 创建 Git Tag
@@ -483,5 +438,3 @@ git push origin v1.0.0
 - [ ] 提交信息符合规范
 
 ---
-
-**感谢你的贡献！** 🎉

@@ -1,15 +1,15 @@
 {
-  "name": "@mcp-agent/desktop",
+  "name": "@mcp-gateway/desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "MCP Agent Desktop (Electron)",
+  "description": "Mcp Gateway Desktop (Electron)",
   "type": "module",
   "scripts": {
     "dev": "echo 'TODO: electron dev'",
     "build": "echo 'TODO: electron build'"
   },
   "dependencies": {
-    "@mcp-agent/web": "workspace:*",
-    "@mcp-agent/server": "workspace:*"
+    "@mcp-gateway/web": "workspace:*",
+    "@mcp-gateway/server": "workspace:*"
   }
 }

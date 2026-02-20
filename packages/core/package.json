@@ -1,7 +1,7 @@
 {
-  "name": "@mcp-agent/core",
+  "name": "@mcp-gateway/core",
   "version": "0.1.0",
-  "description": "MCP Agent 核心引擎",
+  "description": "Mcp Gateway 核心引擎",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -19,7 +19,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@mcp-agent/shared": "workspace:*",
+    "@mcp-gateway/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "axios": "^1.7.7",
     "chokidar": "^3.6.0",

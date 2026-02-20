@@ -32,7 +32,7 @@ import { ConnectionError } from '../types/errors.js';
 import { logger } from '../utils/logger.js';
 
 // Version constant
-const MCP_AGENT_VERSION = '0.1.0';
+const MCP_GATEWAY_VERSION = '0.1.0';
 
 /**
  * Connection events
@@ -304,10 +304,10 @@ export class XiaozhiConnection extends EventEmitter {
         protocolVersion: params.protocolVersion, // Echo back the protocol version
         capabilities,
         serverInfo: {
-          name: 'mcp-agent',
-          version: MCP_AGENT_VERSION,
+          name: 'mcp-gateway',
+          version: MCP_GATEWAY_VERSION,
         },
-        instructions: 'MCP Agent - Aggregates tools from multiple MCP services',
+        instructions: 'Mcp Gateway - Aggregates tools from multiple MCP services',
       };
 
       // Send response

@@ -1,10 +1,10 @@
 {
-  "name": "@mcp-agent/cli",
+  "name": "@mcp-gateway/cli",
   "version": "0.1.0",
-  "description": "MCP Agent CLI",
+  "description": "Mcp Gateway CLI",
   "type": "module",
   "bin": {
-    "mcp-agent": "./dist/cli.js"
+    "mcp-gateway": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@mcp-agent/core": "workspace:*",
+    "@mcp-gateway/core": "workspace:*",
     "dotenv": "^16.4.5"
   },
   "devDependencies": {

@@ -62,7 +62,8 @@ app.route('/mcp', mcpProxyRoutes);
 if (process.env.NODE_ENV === 'production') {
   if (fs.existsSync(publicDir)) {
     // Serve static assets (CSS, JS, images, etc.)
-    app.use('/assets/*', serveStatic({ root: publicDir }));
+    // Use /* to serve all static files (favicon.svg, logo.svg, assets/*, etc.)
+    app.use('/*', serveStatic({ root: publicDir }));
     
     // Fallback to index.html for SPA routes (but not for /api/* or /mcp/*)
     app.get('*', (c) => {

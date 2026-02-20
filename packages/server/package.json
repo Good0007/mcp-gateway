@@ -1,7 +1,7 @@
 {
-  "name": "@mcp-agent/server",
+  "name": "@mcp-gateway/server",
   "version": "1.0.0",
-  "description": "HTTP API Server for MCP Agent GUI",
+  "description": "HTTP API Server for Mcp Gateway GUI",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,8 +15,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@mcp-agent/core": "workspace:*",
-    "@mcp-agent/shared": "workspace:*",
+    "@mcp-gateway/core": "workspace:*",
+    "@mcp-gateway/shared": "workspace:*",
     "hono": "^4.6.14",
     "@hono/node-server": "^1.14.8",
     "zod": "^3.24.1",

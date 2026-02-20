@@ -14,13 +14,13 @@
       },
     },
     "packages/cli": {
-      "name": "@mcp-agent/cli",
+      "name": "@mcp-gateway/cli",
       "version": "0.1.0",
       "bin": {
-        "mcp-agent": "./dist/cli.js",
+        "mcp-gateway": "./dist/cli.js",
       },
       "dependencies": {
-        "@mcp-agent/core": "workspace:*",
+        "@mcp-gateway/core": "workspace:*",
         "dotenv": "^16.4.5",
       },
       "devDependencies": {
@@ -28,10 +28,10 @@
       },
     },
     "packages/core": {
-      "name": "@mcp-agent/core",
+      "name": "@mcp-gateway/core",
       "version": "0.1.0",
       "dependencies": {
-        "@mcp-agent/shared": "workspace:*",
+        "@mcp-gateway/shared": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.0.0",
         "axios": "^1.7.7",
         "chokidar": "^3.6.0",
@@ -48,20 +48,20 @@
       },
     },
     "packages/desktop": {
-      "name": "@mcp-agent/desktop",
+      "name": "@mcp-gateway/desktop",
       "version": "0.1.0",
       "dependencies": {
-        "@mcp-agent/server": "workspace:*",
-        "@mcp-agent/web": "workspace:*",
+        "@mcp-gateway/server": "workspace:*",
+        "@mcp-gateway/web": "workspace:*",
       },
     },
     "packages/server": {
-      "name": "@mcp-agent/server",
+      "name": "@mcp-gateway/server",
       "version": "1.0.0",
       "dependencies": {
         "@hono/node-server": "^1.14.8",
-        "@mcp-agent/core": "workspace:*",
-        "@mcp-agent/shared": "workspace:*",
+        "@mcp-gateway/core": "workspace:*",
+        "@mcp-gateway/shared": "workspace:*",
         "dotenv": "^16.4.7",
         "hono": "^4.6.14",
         "zod": "^3.24.1",
@@ -73,17 +73,17 @@
       },
     },
     "packages/shared": {
-      "name": "@mcp-agent/shared",
+      "name": "@mcp-gateway/shared",
       "version": "1.0.0",
       "devDependencies": {
         "typescript": "~5.7.3",
       },
     },
     "packages/web": {
-      "name": "@mcp-agent/web",
+      "name": "@mcp-gateway/web",
       "version": "0.1.0",
       "dependencies": {
-        "@mcp-agent/shared": "workspace:*",
+        "@mcp-gateway/shared": "workspace:*",
         "@radix-ui/react-dialog": "^1.1.15",
         "@radix-ui/react-dropdown-menu": "^2.1.16",
         "@radix-ui/react-select": "^2.2.6",
@@ -259,17 +259,17 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "https://registry.npmmirror.com/@jridgewell/trace-mapping/-/trace-mapping-0.3.31.tgz", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
-    "@mcp-agent/cli": ["@mcp-agent/cli@workspace:packages/cli"],
+    "@mcp-gateway/cli": ["@mcp-gateway/cli@workspace:packages/cli"],
 
-    "@mcp-agent/core": ["@mcp-agent/core@workspace:packages/core"],
+    "@mcp-gateway/core": ["@mcp-gateway/core@workspace:packages/core"],
 
-    "@mcp-agent/desktop": ["@mcp-agent/desktop@workspace:packages/desktop"],
+    "@mcp-gateway/desktop": ["@mcp-gateway/desktop@workspace:packages/desktop"],
 
-    "@mcp-agent/server": ["@mcp-agent/server@workspace:packages/server"],
+    "@mcp-gateway/server": ["@mcp-gateway/server@workspace:packages/server"],
 
-    "@mcp-agent/shared": ["@mcp-agent/shared@workspace:packages/shared"],
+    "@mcp-gateway/shared": ["@mcp-gateway/shared@workspace:packages/shared"],
 
-    "@mcp-agent/web": ["@mcp-agent/web@workspace:packages/web"],
+    "@mcp-gateway/web": ["@mcp-gateway/web@workspace:packages/web"],
 
     "@modelcontextprotocol/sdk": ["@modelcontextprotocol/sdk@1.26.0", "https://registry.npmmirror.com/@modelcontextprotocol/sdk/-/sdk-1.26.0.tgz", { "dependencies": { "@hono/node-server": "^1.19.9", "ajv": "^8.17.1", "ajv-formats": "^3.0.1", "content-type": "^1.0.5", "cors": "^2.8.5", "cross-spawn": "^7.0.5", "eventsource": "^3.0.2", "eventsource-parser": "^3.0.0", "express": "^5.2.1", "express-rate-limit": "^8.2.1", "hono": "^4.11.4", "jose": "^6.1.3", "json-schema-typed": "^8.0.2", "pkce-challenge": "^5.0.0", "raw-body": "^3.0.0", "zod": "^3.25 || ^4.0", "zod-to-json-schema": "^3.25.1" }, "peerDependencies": { "@cfworker/json-schema": "^4.1.1" }, "optionalPeers": ["@cfworker/json-schema"] }, "sha512-Y5RmPncpiDtTXDbLKswIJzTqu2hyBKxTNsgKqKclDbhIgg1wgtf1fRuvxgTnRfcnxtvvgbIEcqUOzZrJ6iSReg=="],
 
@@ -1043,21 +1043,21 @@
 
     "@eslint-community/eslint-utils/eslint-visitor-keys": ["eslint-visitor-keys@3.4.3", "https://registry.npmmirror.com/eslint-visitor-keys/-/eslint-visitor-keys-3.4.3.tgz", {}, "sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag=="],
 
-    "@mcp-agent/cli/dotenv": ["dotenv@16.6.1", "https://registry.npmmirror.com/dotenv/-/dotenv-16.6.1.tgz", {}, "sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow=="],
+    "@mcp-gateway/cli/dotenv": ["dotenv@16.6.1", "https://registry.npmmirror.com/dotenv/-/dotenv-16.6.1.tgz", {}, "sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow=="],
 
-    "@mcp-agent/core/dotenv": ["dotenv@16.6.1", "https://registry.npmmirror.com/dotenv/-/dotenv-16.6.1.tgz", {}, "sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow=="],
+    "@mcp-gateway/core/dotenv": ["dotenv@16.6.1", "https://registry.npmmirror.com/dotenv/-/dotenv-16.6.1.tgz", {}, "sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow=="],
 
-    "@mcp-agent/server/@types/node": ["@types/node@22.19.11", "https://registry.npmmirror.com/@types/node/-/node-22.19.11.tgz", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-BH7YwL6rA93ReqeQS1c4bsPpcfOmJasG+Fkr6Y59q83f9M1WcBRHR2vM+P9eOisYRcN3ujQoiZY8uk5W+1WL8w=="],
+    "@mcp-gateway/server/@types/node": ["@types/node@22.19.11", "https://registry.npmmirror.com/@types/node/-/node-22.19.11.tgz", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-BH7YwL6rA93ReqeQS1c4bsPpcfOmJasG+Fkr6Y59q83f9M1WcBRHR2vM+P9eOisYRcN3ujQoiZY8uk5W+1WL8w=="],
 
-    "@mcp-agent/server/dotenv": ["dotenv@16.6.1", "https://registry.npmmirror.com/dotenv/-/dotenv-16.6.1.tgz", {}, "sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow=="],
+    "@mcp-gateway/server/dotenv": ["dotenv@16.6.1", "https://registry.npmmirror.com/dotenv/-/dotenv-16.6.1.tgz", {}, "sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow=="],
 
-    "@mcp-agent/web/@eslint/js": ["@eslint/js@9.39.2", "https://registry.npmmirror.com/@eslint/js/-/js-9.39.2.tgz", {}, "sha512-q1mjIoW1VX4IvSocvM/vbTiveKC4k9eLrajNEuSsmjymSDEbpGddtpfOoN7YGAqBK3NG+uqo8ia4PDTt8buCYA=="],
+    "@mcp-gateway/web/@eslint/js": ["@eslint/js@9.39.2", "https://registry.npmmirror.com/@eslint/js/-/js-9.39.2.tgz", {}, "sha512-q1mjIoW1VX4IvSocvM/vbTiveKC4k9eLrajNEuSsmjymSDEbpGddtpfOoN7YGAqBK3NG+uqo8ia4PDTt8buCYA=="],
 
-    "@mcp-agent/web/@types/node": ["@types/node@24.10.13", "https://registry.npmmirror.com/@types/node/-/node-24.10.13.tgz", { "dependencies": { "undici-types": "~7.16.0" } }, "sha512-oH72nZRfDv9lADUBSo104Aq7gPHpQZc4BTx38r9xf9pg5LfP6EzSyH2n7qFmmxRQXh7YlUXODcYsg6PuTDSxGg=="],
+    "@mcp-gateway/web/@types/node": ["@types/node@24.10.13", "https://registry.npmmirror.com/@types/node/-/node-24.10.13.tgz", { "dependencies": { "undici-types": "~7.16.0" } }, "sha512-oH72nZRfDv9lADUBSo104Aq7gPHpQZc4BTx38r9xf9pg5LfP6EzSyH2n7qFmmxRQXh7YlUXODcYsg6PuTDSxGg=="],
 
-    "@mcp-agent/web/globals": ["globals@16.5.0", "https://registry.npmmirror.com/globals/-/globals-16.5.0.tgz", {}, "sha512-c/c15i26VrJ4IRt5Z89DnIzCGDn9EcebibhAOjw5ibqEHsE1wLUgkPn9RDmNcUKyU87GeaL633nyJ+pplFR2ZQ=="],
+    "@mcp-gateway/web/globals": ["globals@16.5.0", "https://registry.npmmirror.com/globals/-/globals-16.5.0.tgz", {}, "sha512-c/c15i26VrJ4IRt5Z89DnIzCGDn9EcebibhAOjw5ibqEHsE1wLUgkPn9RDmNcUKyU87GeaL633nyJ+pplFR2ZQ=="],
 
-    "@mcp-agent/web/typescript": ["typescript@5.9.3", "https://registry.npmmirror.com/typescript/-/typescript-5.9.3.tgz", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+    "@mcp-gateway/web/typescript": ["typescript@5.9.3", "https://registry.npmmirror.com/typescript/-/typescript-5.9.3.tgz", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@modelcontextprotocol/sdk/ajv": ["ajv@8.17.1", "https://registry.npmmirror.com/ajv/-/ajv-8.17.1.tgz", { "dependencies": { "fast-deep-equal": "^3.1.3", "fast-uri": "^3.0.1", "json-schema-traverse": "^1.0.0", "require-from-string": "^2.0.2" } }, "sha512-B/gBuNg5SiMTrPkC+A2+cW0RszwxYmn6VYxB/inlBStS5nx6xHIt/ehKRhIMhqusl7a8LjQoZnjCs5vhwxOQ1g=="],
 
@@ -1109,7 +1109,7 @@
 
     "winston/is-stream": ["is-stream@2.0.1", "https://registry.npmmirror.com/is-stream/-/is-stream-2.0.1.tgz", {}, "sha512-hFoiJiTl63nn+kstHGBtewWSKnQLpyb155KHheA1l39uvtO9nWIop1p3udqPcUd/xbF1VLMO4n7OI6p7RbngDg=="],
 
-    "@mcp-agent/web/@types/node/undici-types": ["undici-types@7.16.0", "https://registry.npmmirror.com/undici-types/-/undici-types-7.16.0.tgz", {}, "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="],
+    "@mcp-gateway/web/@types/node/undici-types": ["undici-types@7.16.0", "https://registry.npmmirror.com/undici-types/-/undici-types-7.16.0.tgz", {}, "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="],
 
     "@modelcontextprotocol/sdk/ajv/json-schema-traverse": ["json-schema-traverse@1.0.0", "https://registry.npmmirror.com/json-schema-traverse/-/json-schema-traverse-1.0.0.tgz", {}, "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="],
 

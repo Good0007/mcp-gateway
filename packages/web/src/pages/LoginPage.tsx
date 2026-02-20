@@ -48,7 +48,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             <Logo size={64} />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            MCP Agent
+            Mcp Gateway
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
             {t('login.subtitle')}
@@ -124,7 +124,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
-          MCP Agent © {new Date().getFullYear()}
+          Mcp Gateway © {new Date().getFullYear()}
         </p>
       </div>
     </div>

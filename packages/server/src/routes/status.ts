@@ -5,7 +5,7 @@
 
 import { Hono } from 'hono';
 import { getAgent, hasAgent } from '../agent.js';
-import type { AgentStatusResponse } from '@mcp-agent/shared';
+import type { AgentStatusResponse } from '@mcp-gateway/shared';
 
 const app = new Hono();
 

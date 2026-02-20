@@ -48,7 +48,7 @@ import {
 import { useState, useEffect } from 'react';
 import { toast } from '@/lib/toast';
 import { useTranslation } from '@/hooks/useI18n';
-import type { McpProxyStatusResponse } from '@mcp-agent/shared';
+import type { McpProxyStatusResponse } from '@mcp-gateway/shared';
 
 export function ConnectionPage() {
   const { t } = useTranslation();

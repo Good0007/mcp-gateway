@@ -2,7 +2,7 @@
 
 # 默认目标
 help:
-	@echo "MCP Agent - Docker 管理命令"
+	@echo "Mcp Gateway - Docker 管理命令"
 	@echo ""
 	@echo "使用方式: make [target]"
 	@echo ""
@@ -77,10 +77,10 @@ buildx-build:
 		exit 1; \
 	fi
 	@docker buildx use mcp-builder
-	docker buildx build \
+	@docker buildx build \
 		--platform linux/amd64,linux/arm64 \
-		--tag mcp-agent:latest \
-		--tag mcp-agent:$$(date +%Y%m%d) \
+		--tag mcp-gateway:latest \
+		--tag mcp-gateway:$$(date +%Y%m%d) \
 		-f Dockerfile \
 		.
 	@echo "✅ 多平台镜像构建完成"
@@ -89,7 +89,7 @@ buildx-push:
 	@echo "🚀 构建并推送多平台镜像..."
 	@if [ -z "$(REGISTRY)" ]; then \
 		echo "❌ 错误：请设置 REGISTRY 变量"; \
-		echo "用法：make buildx-push REGISTRY=your-username/mcp-agent"; \
+		echo "用法：make buildx-push REGISTRY=your-username/mcp-gateway"; \
 		exit 1; \
 	fi
 	@if ! docker buildx ls | grep -q mcp-builder; then \

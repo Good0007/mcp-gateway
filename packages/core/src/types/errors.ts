@@ -4,10 +4,10 @@
  */
 
 // Re-export error codes and response types from shared package
-export { ErrorCode, type ErrorResponse } from '@mcp-agent/shared';
+export { ErrorCode, type ErrorResponse } from '@mcp-gateway/shared';
 
 // Import for use in this file
-import { ErrorCode } from '@mcp-agent/shared';
+import { ErrorCode } from '@mcp-gateway/shared';
 
 /**
  * Base error class for MCP Agent

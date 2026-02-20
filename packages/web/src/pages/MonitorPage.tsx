@@ -6,7 +6,7 @@ import { useAgentStatus, useServices, useTools } from '@/hooks/useAgent';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCircle2, XCircle, Clock, Activity } from 'lucide-react';
-import { MCPServiceStatus } from '@mcp-agent/shared';
+import { MCPServiceStatus } from '@mcp-gateway/shared';
 import { useTranslation } from '@/hooks/useI18n';
 
 function StatusBadge({ status }: { status: MCPServiceStatus }) {

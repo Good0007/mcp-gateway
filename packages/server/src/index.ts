@@ -1,5 +1,5 @@
 /**
- * MCP Agent API Server
+ * Mcp Gateway API Server
  * HTTP REST API gateway for GUI frontend
  */
 
@@ -10,7 +10,7 @@ import app from './app.js';
 
 const port = ENV.PORT;
 
-console.log(`🚀 MCP Agent API Server starting on port ${port}...`);
+console.log(`🚀 Mcp Gateway API Server starting on port ${port}...`);
 
 serve({
   fetch: app.fetch,

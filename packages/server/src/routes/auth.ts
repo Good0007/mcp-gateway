@@ -98,7 +98,7 @@ app.post('/login', async (c) => {
       };
       
       // Allow custom domain for cross-domain cookie sharing (optional)
-      // If MCP_AGENT_COOKIE_DOMAIN is set, use it. Otherwise, browser auto-detects based on current hostname
+      // If MCP_GATEWAY_COOKIE_DOMAIN is set, use it. Otherwise, browser auto-detects based on current hostname
       if (ENV.COOKIE_DOMAIN) {
         cookieOptions.domain = ENV.COOKIE_DOMAIN;
       }

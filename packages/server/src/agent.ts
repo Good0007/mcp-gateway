@@ -5,7 +5,7 @@
 
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { MCPAgent } from '@mcp-agent/core';
+import { MCPAgent } from '@mcp-gateway/core';
 import { existsSync } from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

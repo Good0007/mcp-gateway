@@ -1,6 +1,6 @@
-# Docker 部署指南
+# Mcp Gateway Docker 部署指南
 
-使用 Docker 快速部署 MCP Agent 到生产环境。
+使用 Docker 快速部署 Mcp Gateway 到生产环境。
 
 ## 📋 目录
 
@@ -32,13 +32,13 @@ open http://localhost:3000
 
 ```bash
 # 构建镜像
-docker build -t mcp-agent:latest .
+docker build -t mcp-gateway:latest .
 
 # 运行容器
-docker run -d -p 3000:3000 --name mcp-agent mcp-agent:latest
+docker run -d -p 3000:3000 --name mcp-gateway mcp-gateway:latest
 
 # 查看日志
-docker logs -f mcp-agent
+docker logs -f mcp-gateway
 ```
 
 ---
@@ -49,22 +49,21 @@ docker logs -f mcp-agent
 
 ```bash
 # AMD64 或 ARM64 架构
-docker run -d -p 3000:3000 kangkang223/mcp-agent:latest
+docker run -d -p 3000:3000 kangkang223/mcp-gateway:latest
 
 # 使用 Docker Compose
 services:
-  mcp-agent:
-    image: kangkang223/mcp-agent:latest
+  mcp-gateway:
+    image: kangkang223/mcp-gateway:latest
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - MCP_GATEWAY_AUTH=true
+      - MCP_GATEWAY_USERNAME=admin
+      - MCP_GATEWAY_PASSWORD=<your_secure_password>
     restart: unless-stopped
 ```
-
-详细使用说明：[Docker Hub README](../DOCKER_HUB_README.md)
-
----
 
 ## ⚙️ 配置说明
 
@@ -74,27 +73,25 @@ services:
 
 ```yaml
 services:
-  mcp-agent:
+  mcp-gateway:
     environment:
       # 运行环境
       - NODE_ENV=production
       
       # 登录认证（可选）
-      - MCP_AGENT_AUTH_ENABLE=true
-      - MCP_AGENT_USERNAME=admin
-      - MCP_AGENT_PASSWORD=your_secure_password
+      - MCP_GATEWAY_AUTH=true
+      - MCP_GATEWAY_USERNAME=admin
+      - MCP_GATEWAY_PASSWORD=your_secure_password
 ```
 
 ### 数据持久化
 
 ```yaml
 services:
-  mcp-agent:
+  mcp-gateway:
     volumes:
       # 配置文件
       - ./config:/app/config
-      # 数据目录
-      - ./data:/app/data
       # 日志目录
       - ./logs:/app/logs
 ```
@@ -103,7 +100,7 @@ services:
 
 ```yaml
 services:
-  mcp-agent:
+  mcp-gateway:
     ports:
       - "3000:3000"  # Web 界面和 API
 ```
@@ -128,7 +125,7 @@ docker-compose restart
 docker-compose logs -f
 
 # 进入容器
-docker-compose exec mcp-agent sh
+docker-compose exec mcp-gateway sh
 ```
 
 ### 使用 Makefile（推荐）
@@ -181,7 +178,7 @@ docker buildx create --name multiarch-builder --use
 # 构建多平台镜像
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t kangkang223/mcp-agent:latest \
+  -t kangkang223/mcp-gateway:latest \
   --push \
   .
 ```
@@ -204,7 +201,7 @@ ls -la bun.lock*
 
 ```bash
 # 查看容器日志
-docker-compose logs mcp-agent
+docker-compose logs mcp-gateway
 
 # 检查端口占用
 lsof -i :3000
@@ -214,7 +211,7 @@ lsof -i :3000
 
 ```bash
 # 进入容器检查静态文件
-docker-compose exec mcp-agent sh
+docker-compose exec mcp-gateway sh
 ls -la /app/packages/server/public/
 
 # 如果目录为空，重新构建
@@ -225,7 +222,7 @@ docker-compose down && docker-compose build --no-cache && docker-compose up -d
 
 ```bash
 # 以 root 用户进入容器
-docker-compose exec -u root mcp-agent sh
+docker-compose exec -u root mcp-gateway sh
 
 # 修复权限
 chown -R node:node /app
@@ -235,10 +232,10 @@ chown -R node:node /app
 
 ```bash
 # 测试网络连接
-docker-compose exec mcp-agent ping google.com
+docker-compose exec mcp-gateway ping google.com
 
 # 检查 DNS
-docker-compose exec mcp-agent nslookup google.com
+docker-compose exec mcp-gateway nslookup google.com
 ```
 
 ---
@@ -248,7 +245,7 @@ docker-compose exec mcp-agent nslookup google.com
 - [Dockerfile 最佳实践](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/)
 - [Docker Compose 文档](https://docs.docker.com/compose/)
 - [Docker Buildx 文档](https://docs.docker.com/buildx/working-with-buildx/)
-- [项目 Docker Hub](https://hub.docker.com/r/kangkang223/mcp-agent)
+- [项目 Docker Hub](https://hub.docker.com/r/kangkang223/mcp-gateway)
 
 ---
 
@@ -256,5 +253,5 @@ docker-compose exec mcp-agent nslookup google.com
 
 - **开发环境**：推荐使用本地模式（`bun run dev`），Docker 主要用于生产部署
 - **镜像大小**：生产镜像约 300-400MB（Alpine 基础镜像）
-- **安全性**：生产环境务必配置 `MCP_AGENT_AUTH_*` 认证
+- **安全性**：生产环境务必配置 `MCP_GATEWAY_AUTH_*` 认证
 - **性能**：多阶段构建确保生产镜像只包含必要文件

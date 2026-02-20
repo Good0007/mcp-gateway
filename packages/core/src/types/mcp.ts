@@ -14,9 +14,9 @@ export type {
   InitializeResult,
   ListToolsResult,
   MCPServiceMetadata,
-} from '@mcp-agent/shared';
+} from '@mcp-gateway/shared';
 
-export { MCPServiceStatus } from '@mcp-agent/shared';
+export { MCPServiceStatus } from '@mcp-gateway/shared';
 
 // Import types for use in this file
 import type {
@@ -24,7 +24,7 @@ import type {
   ListToolsResult,
   CallToolRequest,
   CallToolResult,
-} from '@mcp-agent/shared';
+} from '@mcp-gateway/shared';
 
 /**
  * Basic MCP service interface (core-specific)

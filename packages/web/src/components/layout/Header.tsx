@@ -64,7 +64,7 @@ export function Header({ currentPage, onNavigate }: HeaderProps) {
             <Logo size={32} />
           </div>
           <span className="font-bold text-lg text-gray-900 dark:text-white hidden md:inline-block">
-            MCP Agent
+            Mcp Gateway
           </span>
         </div>
 

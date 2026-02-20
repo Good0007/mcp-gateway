@@ -6,7 +6,7 @@ import type {
   WebConfigResponse, 
   ExportConfigResponse,
   XiaozhiEndpoint,
-} from '@mcp-agent/shared';
+} from '@mcp-gateway/shared';
 
 // 使用相对路径，支持生产环境和开发环境
 // 生产环境：前后端在同一端口，直接使用 /api

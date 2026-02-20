@@ -9,7 +9,7 @@ import type {
   WebConfigResponse, 
   ExportConfigResponse,
   XiaozhiEndpoint,
-} from '@mcp-agent/shared';
+} from '@mcp-gateway/shared';
 
 const app = new Hono();
 

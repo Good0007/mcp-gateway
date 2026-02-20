@@ -29,7 +29,7 @@ const translations = {
     'nav.environment': '环境检测',
     'nav.config': '系统配置',
     'nav.logs': '日志查看',
-    'header.title': 'MCP Agent',
+    'header.title': 'Mcp Gateway',
     
     // Connection Page
     'connection.title': '连接管理',
@@ -121,7 +121,7 @@ const translations = {
     'xiaozhi.services.empty': '暂无运行中的服务',
     'xiaozhi.services.empty_hint': '请在"服务配置"页面启动服务',
     'xiaozhi.about.title': '关于 Xiaozhi 服务',
-    'xiaozhi.about.desc': 'Xiaozhi 是 MCP Agent 的 AI 对话服务，负责处理用户交互和智能决策。您可以在"端点管理"标签页中添加多个端点，并在此处快速切换。',
+    'xiaozhi.about.desc': 'Xiaozhi 是 Mcp Gateway 的 AI 对话服务，负责处理用户交互和智能决策。您可以在"端点管理"标签页中添加多个端点，并在此处快速切换。',
     'xiaozhi.endpoint.add.title': '添加新端点',
     'xiaozhi.endpoint.add.desc': '添加 Xiaozhi 服务的访问端点',
     'xiaozhi.endpoint.add.name_label': '端点名称',
@@ -167,6 +167,7 @@ const translations = {
     'connection.proxy.auth.unset': '未设置',
     'connection.proxy.active': '活跃会话',
     'connection.proxy.tools': '可用工具',
+    'connection.proxy.port': '端口',
     'connection.proxy.protocol': '协议信息',
     'connection.proxy.protocol.ver': '协议版本：',
     'connection.proxy.protocol.transport': '传输方式：',
@@ -565,7 +566,7 @@ const translations = {
     'nav.environment': 'Environment',
     'nav.config': 'Configuration',
     'nav.logs': 'Logs',
-    'header.title': 'MCP Agent',
+    'header.title': 'Mcp Gateway',
 
     // Connection Page
     'connection.title': 'Connection Management',
@@ -657,7 +658,7 @@ const translations = {
     'xiaozhi.services.empty': 'No running services',
     'xiaozhi.services.empty_hint': 'Please start services in "Services" page',
     'xiaozhi.about.title': 'About Xiaozhi Service',
-    'xiaozhi.about.desc': 'Xiaozhi is the AI dialogue service for MCP Agent, responsible for handling user interactions and intelligent decisions. You can add multiple endpoints in the "Endpoints" tab and switch quickly here.',
+    'xiaozhi.about.desc': 'Xiaozhi is the AI dialogue service for Mcp Gateway, responsible for handling user interactions and intelligent decisions. You can add multiple endpoints in the "Endpoints" tab and switch quickly here.',
     'xiaozhi.endpoint.add.title': 'Add New Endpoint',
     'xiaozhi.endpoint.add.desc': 'Add access endpoint for Xiaozhi service',
     'xiaozhi.endpoint.add.name_label': 'Endpoint Name',
@@ -703,6 +704,7 @@ const translations = {
     'connection.proxy.auth.unset': 'Unset',
     'connection.proxy.active': 'Active Sessions',
     'connection.proxy.tools': 'Available Tools',
+    'connection.proxy.port': 'Port',
     'connection.proxy.protocol': 'Protocol Info',
     'connection.proxy.protocol.ver': 'Protocol Version:',
     'connection.proxy.protocol.transport': 'Transport:',
