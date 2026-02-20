@@ -37,6 +37,7 @@ export abstract class BaseServiceAdapter implements IMCPService {
       status: this.status,
       serverInfo: this.initResult?.serverInfo,
       capabilities: this.initResult?.capabilities,
+      toolCount: this.tools?.tools?.length,
     };
   }
 
@@ -71,7 +72,7 @@ export abstract class BaseServiceAdapter implements IMCPService {
    * Initialize the service
    * Subclasses must implement the actual initialization logic
    */
-  async initialize(): Promise<InitializeResult> {
+  async initialize(onLog?: (message: string) => void): Promise<InitializeResult> {
     if (this.status === MCPServiceStatus.RUNNING) {
       throw new ServiceError(
         ErrorCode.SERVICE_ALREADY_RUNNING,
@@ -85,7 +86,7 @@ export abstract class BaseServiceAdapter implements IMCPService {
       logger.info(`Initializing service: ${this.config.name}`, { id: this.config.id });
 
       // Call subclass implementation
-      this.initResult = await this.doInitialize();
+      this.initResult = await this.doInitialize(onLog);
 
       // Cache tools list
       this.tools = await this.doListTools();
@@ -221,7 +222,7 @@ export abstract class BaseServiceAdapter implements IMCPService {
   /**
    * Initialize the underlying service
    */
-  protected abstract doInitialize(): Promise<InitializeResult>;
+  protected abstract doInitialize(onLog?: (message: string) => void): Promise<InitializeResult>;
 
   /**
    * List tools from the underlying service

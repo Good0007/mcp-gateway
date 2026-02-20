@@ -13,6 +13,9 @@ dist/
 build/
 *.tsbuildinfo
 
+# Web build artifacts (copied to server/public)
+packages/server/public/
+
 # Environment variables
 .env
 .env.local
@@ -21,6 +24,7 @@ config/.env
 
 # Runtime state (auto-generated)
 config/runtime-state.json
+DOCKER_HUB_README.md
 
 # IDE
 .vscode/

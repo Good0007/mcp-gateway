@@ -5,7 +5,7 @@
 
 import { Hono } from 'hono';
 import { getAgent } from '../agent.js';
-import type { ToolListResponse, ToolCallRequestBody, ToolCallResponse } from '@mcp-agent/shared';
+import type { ToolListResponse, ToolCallRequestBody, ToolCallResponse } from '@mcp-gateway/shared';
 
 const app = new Hono();
 

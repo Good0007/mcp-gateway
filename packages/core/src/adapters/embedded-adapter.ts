@@ -107,7 +107,9 @@ export class EmbeddedServiceAdapter extends BaseServiceAdapter {
   /**
    * Initialize the embedded service
    */
-  protected async doInitialize(): Promise<InitializeResult> {
+  protected async doInitialize(onLog?: (message: string) => void): Promise<InitializeResult> {
+    void onLog; // Suppress unused variable warning
+
     try {
       // Load the module
       this.service = await this.loadModule();

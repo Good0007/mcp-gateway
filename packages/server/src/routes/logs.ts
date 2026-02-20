@@ -4,7 +4,7 @@
  */
 
 import { Hono } from 'hono';
-import { getLogBuffer } from '@mcp-agent/core';
+import { getLogBuffer } from '@mcp-gateway/core';
 
 const app = new Hono();
 

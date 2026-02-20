@@ -100,6 +100,7 @@ export interface MCPServiceMetadata {
   id: string;
   name: string;
   description?: string;
+  type?: 'stdio' | 'embedded' | 'sse' | 'http';
   status: MCPServiceStatus;
   serverInfo?: ServerInfo;
   capabilities?: ServerCapabilities;

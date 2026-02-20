@@ -32,7 +32,7 @@ import { ConnectionError } from '../types/errors.js';
 import { logger } from '../utils/logger.js';
 
 // Version constant
-const MCP_AGENT_VERSION = '0.1.0';
+const MCP_GATEWAY_VERSION = '0.1.0';
 
 /**
  * Connection events
@@ -304,10 +304,10 @@ export class XiaozhiConnection extends EventEmitter {
         protocolVersion: params.protocolVersion, // Echo back the protocol version
         capabilities,
         serverInfo: {
-          name: 'mcp-agent',
-          version: MCP_AGENT_VERSION,
+          name: 'mcp-gateway',
+          version: MCP_GATEWAY_VERSION,
         },
-        instructions: 'MCP Agent - Aggregates tools from multiple MCP services',
+        instructions: 'Mcp Gateway - Aggregates tools from multiple MCP services',
       };
 
       // Send response
@@ -392,6 +392,10 @@ export class XiaozhiConnection extends EventEmitter {
     const parameterMappings: Record<string, Record<string, string>> = {
       search_files: {
         keyword: 'pattern',  // xiaozhi sends 'keyword', tool expects 'pattern'
+      },
+      control: {
+        device_id: 'entity_id',  // xiaozhi sends 'device_id', tool expects 'entity_id'
+        action: 'command',       // xiaozhi sends 'action', tool expects 'command'
       },
       // Add more tool-specific mappings here if needed
     };

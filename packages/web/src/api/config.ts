@@ -6,9 +6,12 @@ import type {
   WebConfigResponse, 
   ExportConfigResponse,
   XiaozhiEndpoint,
-} from '@mcp-agent/shared';
+} from '@mcp-gateway/shared';
 
-const API_BASE = 'http://localhost:3001/api';
+// 使用相对路径，支持生产环境和开发环境
+// 生产环境：前后端在同一端口，直接使用 /api
+// 开发环境：通过 Vite proxy 代理到后端端口
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 /**
  * Get full web configuration
@@ -147,6 +150,76 @@ export async function updatePreferences(
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'Failed to update preferences');
+  }
+  
+  return response.json();
+}
+
+// ==================== MCP Proxy Management ====================
+
+/**
+ * Get MCP proxy configuration
+ */
+export async function getMcpProxy(): Promise<{ mcpProxy: { enabled: boolean; token?: string } }> {
+  const response = await fetch(`${API_BASE}/config/mcp-proxy`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to get MCP proxy config');
+  }
+  return response.json();
+}
+
+/**
+ * Update MCP proxy configuration
+ */
+export async function updateMcpProxy(
+  updates: { enabled?: boolean; token?: string; enabledServices?: string[] }
+): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/config/mcp-proxy`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to update MCP proxy config');
+  }
+  
+  return response.json();
+}
+
+/**
+ * Update Xiaozhi configuration
+ */
+export async function updateXiaozhi(
+  updates: { enabledServices?: string[] }
+): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/config/xiaozhi`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to update Xiaozhi config');
+  }
+  
+  return response.json();
+}
+
+/**
+ * Generate a new random token
+ */
+export async function generateProxyToken(): Promise<{ success: boolean; token: string }> {
+  const response = await fetch(`${API_BASE}/config/mcp-proxy/generate-token`, {
+    method: 'POST',
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to generate token');
   }
   
   return response.json();

@@ -38,26 +38,57 @@ export class StdioServiceAdapter extends BaseServiceAdapter {
   /**
    * Initialize the stdio service
    */
-  protected async doInitialize(): Promise<InitializeResult> {
+  protected async doInitialize(onLog?: (message: string) => void): Promise<InitializeResult> {
     const config = this.stdioConfig;
+    
+    // Use a buffer to capture initial stderr output for debugging initialization failures
+    let stderrBuffer = '';
+    const stderrLimit = 2000; // Capture first 2KB of stderr
 
     try {
       // Prepare environment variables (filter out undefined values)
-      const env = config.env
-        ? Object.fromEntries(
-            Object.entries({ ...process.env, ...config.env }).filter(
-              ([_, value]) => value !== undefined
-            ) as [string, string][]
-          )
-        : undefined;
+      // IMPORTANT: StdioClientTransport expects env to be the COMPLETE environment
+      // If we only provide config.env, the process will miss system env vars (PATH, HOME, etc.)
+      const env = {
+        ...process.env,
+        ...(config.env || {})
+      };
+      
+      // Filter out undefined values to satisfy type requirements
+      const cleanEnv = Object.fromEntries(
+        Object.entries(env).filter(([_, value]) => value !== undefined)
+      ) as Record<string, string>;
 
       // Create transport with optional working directory
       this.transport = new StdioClientTransport({
         command: config.command,
         args: config.args || [],
-        env,
+        env: cleanEnv,
         cwd: config.cwd,  // Set working directory for the service process
+        stderr: 'pipe',   // Pipe stderr to capture logs
       });
+
+      // Listen to stderr for logging
+      if (this.transport.stderr) {
+        this.transport.stderr.on('data', (chunk: any) => {
+          const text = chunk.toString();
+          // Always log to system logger
+          logger.debug(`[${config.id}] stderr: ${text.trim()}`);
+          
+          // Stream logs if callback provided
+          if (onLog) {
+            onLog(text);
+          }
+          
+          // Accumulate buffer for error reporting (with limit)
+          if (stderrBuffer.length < stderrLimit) {
+            stderrBuffer += text;
+            if (stderrBuffer.length > stderrLimit) {
+              stderrBuffer = stderrBuffer.substring(0, stderrLimit) + '... (truncated)';
+            }
+          }
+        });
+      }
 
       // Create client
       this.client = new Client(
@@ -71,7 +102,7 @@ export class StdioServiceAdapter extends BaseServiceAdapter {
       );
 
       // Connect with timeout
-      const connectTimeout = 30000; // 30 seconds
+      const connectTimeout = 60000; // 60 seconds
       const connectPromise = this.client.connect(this.transport);
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('连接超时：服务启动时间过长')), connectTimeout);
@@ -110,17 +141,21 @@ export class StdioServiceAdapter extends BaseServiceAdapter {
       let suggestion = '';
 
       // Check for common error patterns
-      if (error.code === 'ENOENT' || errorMessage.includes('ENOENT')) {
-        errorMessage = `命令未找到: ${config.command}`;
-        suggestion = this.getCommandNotFoundSuggestion(config.command);
-      } else if (error.code === 'EACCES' || errorMessage.includes('EACCES')) {
+      if (error.code === 'EACCES' || errorMessage.includes('EACCES')) {
         errorMessage = `权限被拒绝: ${config.command}`;
         suggestion = `请检查命令是否有执行权限，或尝试: chmod +x ${config.command}`;
       } else if (errorMessage.includes('spawn') && errorMessage.includes('ENOENT')) {
         errorMessage = `无法启动进程: ${config.command}`;
         suggestion = this.getCommandNotFoundSuggestion(config.command);
+      } else if (error.code === 'ENOENT' || errorMessage.includes('ENOENT')) {
+        errorMessage = `命令未找到: ${config.command}`;
+        suggestion = this.getCommandNotFoundSuggestion(config.command);
       } else if (errorMessage.includes('连接超时')) {
         suggestion = '服务启动时间过长，可能需要：\n1. 检查命令和参数是否正确\n2. 检查服务是否需要安装依赖\n3. 查看服务日志获取详细错误信息';
+        // Append captured stderr if available
+        if (stderrBuffer) {
+          errorMessage += `\n\n[启动日志截取]:\n${stderrBuffer}`;
+        }
       }
 
       const fullMessage = suggestion ? `${errorMessage}\n\n建议: ${suggestion}` : errorMessage;

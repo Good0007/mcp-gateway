@@ -9,7 +9,7 @@ import type {
   WebConfigResponse, 
   ExportConfigResponse,
   XiaozhiEndpoint,
-} from '@mcp-agent/shared';
+} from '@mcp-gateway/shared';
 
 const app = new Hono();
 
@@ -70,6 +70,44 @@ app.get('/export', async (c) => {
 
 // POST /api/config/import - Import configuration from JSON
 app.post('/import', async (c) => {
+  console.log('[CONFIG] Import request received');
+  try {
+    const agent = await getAgent();
+    const webConfig = agent.getWebConfigManager();
+    
+    if (!webConfig) {
+      console.error('[CONFIG] Web config manager not initialized');
+      return c.json({ error: 'Web config manager not initialized' }, 500);
+    }
+
+    const body = await c.req.json<{ content: string }>();
+    console.log('[CONFIG] Request body received, content length:', body.content?.length || 0);
+    
+    if (!body.content) {
+      console.error('[CONFIG] Missing configuration content');
+      return c.json({ error: 'Missing configuration content' }, 400);
+    }
+
+    console.log('[CONFIG] Importing configuration...');
+    await webConfig.importConfig(body.content);
+    console.log('[CONFIG] Configuration imported successfully');
+
+    return c.json({ 
+      success: true, 
+      message: 'Configuration imported successfully' 
+    });
+  } catch (error: any) {
+    console.error('[CONFIG] Import config error:', error);
+    console.error('[CONFIG] Error stack:', error.stack);
+    return c.json({ 
+      error: error.message || 'Failed to import configuration',
+      details: error.stack 
+    }, 500);
+  }
+});
+
+// PATCH /api/config/xiaozhi - Update Xiaozhi configuration
+app.patch('/xiaozhi', async (c) => {
   try {
     const agent = await getAgent();
     const webConfig = agent.getWebConfigManager();
@@ -78,21 +116,16 @@ app.post('/import', async (c) => {
       return c.json({ error: 'Web config manager not initialized' }, 500);
     }
 
-    const body = await c.req.json<{ content: string }>();
-    
-    if (!body.content) {
-      return c.json({ error: 'Missing configuration content' }, 400);
-    }
-
-    await webConfig.importConfig(body.content);
+    const updates = await c.req.json();
+    await webConfig.updateXiaozhi(updates);
 
     return c.json({ 
       success: true, 
-      message: 'Configuration imported successfully' 
+      message: 'Xiaozhi configuration updated',
     });
   } catch (error: any) {
-    console.error('Import config error:', error);
-    return c.json({ error: error.message || 'Failed to import configuration' }, 500);
+    console.error('Update Xiaozhi config error:', error);
+    return c.json({ error: error.message || 'Failed to update Xiaozhi config' }, 500);
   }
 });
 
@@ -237,6 +270,76 @@ app.patch('/preferences', async (c) => {
   } catch (error: any) {
     console.error('Update preferences error:', error);
     return c.json({ error: error.message || 'Failed to update preferences' }, 500);
+  }
+});
+
+// ==================== MCP Proxy Management ====================
+
+// GET /api/config/mcp-proxy - Get MCP proxy configuration
+app.get('/mcp-proxy', async (c) => {
+  try {
+    const agent = await getAgent();
+    const webConfig = agent.getWebConfigManager();
+    
+    if (!webConfig) {
+      return c.json({ error: 'Web config manager not initialized' }, 500);
+    }
+
+    const mcpProxy = webConfig.getMcpProxy();
+    return c.json({ mcpProxy });
+  } catch (error: any) {
+    console.error('Get MCP proxy config error:', error);
+    return c.json({ error: error.message || 'Failed to get MCP proxy config' }, 500);
+  }
+});
+
+// PATCH /api/config/mcp-proxy - Update MCP proxy configuration
+app.patch('/mcp-proxy', async (c) => {
+  try {
+    const agent = await getAgent();
+    const webConfig = agent.getWebConfigManager();
+    
+    if (!webConfig) {
+      return c.json({ error: 'Web config manager not initialized' }, 500);
+    }
+
+    const updates = await c.req.json();
+    await webConfig.updateMcpProxy(updates);
+
+    return c.json({ 
+      success: true, 
+      message: 'MCP proxy configuration updated',
+    });
+  } catch (error: any) {
+    console.error('Update MCP proxy config error:', error);
+    return c.json({ error: error.message || 'Failed to update MCP proxy config' }, 500);
+  }
+});
+
+// POST /api/config/mcp-proxy/generate-token - Generate a random token
+app.post('/mcp-proxy/generate-token', async (c) => {
+  try {
+    const agent = await getAgent();
+    const webConfig = agent.getWebConfigManager();
+    
+    if (!webConfig) {
+      return c.json({ error: 'Web config manager not initialized' }, 500);
+    }
+
+    // Generate a secure random token
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    await webConfig.updateMcpProxy({ token });
+
+    return c.json({ 
+      success: true, 
+      token,
+    });
+  } catch (error: any) {
+    console.error('Generate token error:', error);
+    return c.json({ error: error.message || 'Failed to generate token' }, 500);
   }
 });
 

@@ -6,14 +6,16 @@ import { useAgentStatus, useServices, useTools } from '@/hooks/useAgent';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCircle2, XCircle, Clock, Activity } from 'lucide-react';
-import { MCPServiceStatus } from '@mcp-agent/shared';
+import { MCPServiceStatus } from '@mcp-gateway/shared';
+import { useTranslation } from '@/hooks/useI18n';
 
 function StatusBadge({ status }: { status: MCPServiceStatus }) {
+  const { t } = useTranslation();
   const config = {
-    [MCPServiceStatus.RUNNING]: { color: 'success' as const, label: '运行中', Icon: CheckCircle2 },
-    [MCPServiceStatus.STOPPED]: { color: 'default' as const, label: '已停止', Icon: XCircle },
-    [MCPServiceStatus.STARTING]: { color: 'warning' as const, label: '启动中', Icon: Clock },
-    [MCPServiceStatus.ERROR]: { color: 'error' as const, label: '错误', Icon: XCircle },
+    [MCPServiceStatus.RUNNING]: { color: 'success' as const, label: t('services.status.running'), Icon: CheckCircle2 },
+    [MCPServiceStatus.STOPPED]: { color: 'default' as const, label: t('services.status.stopped'), Icon: XCircle },
+    [MCPServiceStatus.STARTING]: { color: 'warning' as const, label: t('services.status.starting'), Icon: Clock },
+    [MCPServiceStatus.ERROR]: { color: 'error' as const, label: t('services.status.error'), Icon: XCircle },
   };
 
   const { color, label, Icon } = config[status] || config[MCPServiceStatus.STOPPED];
@@ -27,6 +29,7 @@ function StatusBadge({ status }: { status: MCPServiceStatus }) {
 }
 
 export function MonitorPage() {
+  const { t } = useTranslation();
   const { data: status, isLoading: statusLoading } = useAgentStatus();
   const { data: services, isLoading: servicesLoading } = useServices();
   const { data: tools, isLoading: toolsLoading } = useTools();
@@ -46,9 +49,9 @@ export function MonitorPage() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-slate-400">Agent 状态</p>
+              <p className="text-sm text-gray-500 dark:text-slate-400">{t('monitor.agent.status')}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {status?.running ? '运行中' : '未运行'}
+                {status?.running ? t('monitor.agent.running') : t('monitor.agent.stopped')}
               </p>
             </div>
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
@@ -68,13 +71,13 @@ export function MonitorPage() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-slate-400">服务总数</p>
+              <p className="text-sm text-gray-500 dark:text-slate-400">{t('monitor.service.total')}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                 {status?.services.total || 0}
               </p>
             </div>
             <div className="text-xs text-gray-500 dark:text-slate-500">
-              运行: {status?.services.running || 0}
+              {t('monitor.service.running')}: {status?.services.running || 0}
             </div>
           </div>
         </Card>
@@ -82,7 +85,7 @@ export function MonitorPage() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-slate-400">可用工具</p>
+              <p className="text-sm text-gray-500 dark:text-slate-400">{t('monitor.tool.total')}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                 {tools?.tools.length || 0}
               </p>
@@ -93,7 +96,7 @@ export function MonitorPage() {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-slate-400">运行时间</p>
+              <p className="text-sm text-gray-500 dark:text-slate-400">{t('monitor.uptime')}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                 {status?.uptime ? `${Math.floor(status.uptime / 60)}m` : '-'}
               </p>
@@ -106,20 +109,20 @@ export function MonitorPage() {
       {status?.xiaozhi && (
         <Card>
           <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800">
-            <h3 className="font-semibold text-gray-900 dark:text-white">Xiaozhi 连接</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white">{t('monitor.xiaozhi.connection')}</h3>
           </div>
           <div className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {status.xiaozhi.connected ? '已连接' : '未连接'}
+                  {status.xiaozhi.connected ? t('monitor.xiaozhi.connected') : t('monitor.xiaozhi.disconnected')}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-                  {status.xiaozhi.endpoint || '未配置'}
+                  {status.xiaozhi.endpoint || t('monitor.xiaozhi.unconfigured')}
                 </p>
               </div>
               <Badge variant={status.xiaozhi.connected ? 'success' : 'default'}>
-                {status.xiaozhi.connected ? '在线' : '离线'}
+                {status.xiaozhi.connected ? t('monitor.xiaozhi.online') : t('monitor.xiaozhi.offline')}
               </Badge>
             </div>
           </div>
@@ -129,7 +132,7 @@ export function MonitorPage() {
       {/* Services List */}
       <Card>
         <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800">
-          <h3 className="font-semibold text-gray-900 dark:text-white">服务状态</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-white">{t('monitor.service.status')}</h3>
         </div>
         <div className="p-6">
           {servicesLoading ? (
@@ -167,7 +170,7 @@ export function MonitorPage() {
             </div>
           ) : (
             <p className="text-center text-gray-500 dark:text-slate-400 py-8">
-              暂无服务
+              {t('monitor.service.empty')}
             </p>
           )}
         </div>
@@ -176,7 +179,7 @@ export function MonitorPage() {
       {/* Tools List */}
       <Card>
         <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800">
-          <h3 className="font-semibold text-gray-900 dark:text-white">可用工具</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-white">{t('monitor.tool.total')}</h3>
         </div>
         <div className="p-6">
           {toolsLoading ? (
@@ -206,7 +209,7 @@ export function MonitorPage() {
             </div>
           ) : (
             <p className="text-center text-gray-500 dark:text-slate-400 py-8">
-              暂无可用工具
+              {t('monitor.tool.empty')}
             </p>
           )}
         </div>

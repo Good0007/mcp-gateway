@@ -1,0 +1,35 @@
+<!-- MCP Agent Logo - 优化版本 -->
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="agentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+  
+  <!-- 背景圆 -->
+  <circle cx="64" cy="64" r="56" fill="url(#agentGrad)" filter="url(#shadow)"/>
+  
+  <!-- 中心代理节点 -->
+  <circle cx="64" cy="64" r="18" fill="white" opacity="0.95"/>
+  <circle cx="64" cy="64" r="11" fill="url(#agentGrad)"/>
+  
+  <!-- 外围服务节点 -->
+  <circle cx="64" cy="26" r="9" fill="white" opacity="0.92"/>
+  <circle cx="95" cy="42" r="9" fill="white" opacity="0.92"/>
+  <circle cx="95" cy="86" r="9" fill="white" opacity="0.92"/>
+  <circle cx="64" cy="102" r="9" fill="white" opacity="0.92"/>
+  <circle cx="33" cy="86" r="9" fill="white" opacity="0.92"/>
+  <circle cx="33" cy="42" r="9" fill="white" opacity="0.92"/>
+  
+  <!-- 连接线 -->
+  <line x1="64" y1="64" x2="64" y2="26" stroke="white" stroke-width="3" opacity="0.65" stroke-linecap="round"/>
+  <line x1="64" y1="64" x2="95" y2="42" stroke="white" stroke-width="3" opacity="0.65" stroke-linecap="round"/>
+  <line x1="64" y1="64" x2="95" y2="86" stroke="white" stroke-width="3" opacity="0.65" stroke-linecap="round"/>
+  <line x1="64" y1="64" x2="64" y2="102" stroke="white" stroke-width="3" opacity="0.65" stroke-linecap="round"/>
+  <line x1="64" y1="64" x2="33" y2="86" stroke="white" stroke-width="3" opacity="0.65" stroke-linecap="round"/>
+  <line x1="64" y1="64" x2="33" y2="42" stroke="white" stroke-width="3" opacity="0.65" stroke-linecap="round"/>
+</svg>

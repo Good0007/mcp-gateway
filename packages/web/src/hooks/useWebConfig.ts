@@ -126,3 +126,59 @@ export function useUpdatePreferences() {
     },
   });
 }
+
+/**
+ * Hook to update Xiaozhi configuration
+ */
+export function useUpdateXiaozhi() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: configApi.updateXiaozhi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['endpoints'] });
+      queryClient.invalidateQueries({ queryKey: ['webConfig'] });
+    },
+  });
+}
+
+// ==================== MCP Proxy ====================
+
+/**
+ * Hook to get MCP proxy configuration
+ */
+export function useMcpProxy() {
+  return useQuery({
+    queryKey: ['mcpProxy'],
+    queryFn: configApi.getMcpProxy,
+  });
+}
+
+/**
+ * Hook to update MCP proxy configuration
+ */
+export function useUpdateMcpProxy() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: configApi.updateMcpProxy,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mcpProxy'] });
+      queryClient.invalidateQueries({ queryKey: ['webConfig'] });
+    },
+  });
+}
+
+/**
+ * Hook to generate a new proxy token
+ */
+export function useGenerateProxyToken() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: configApi.generateProxyToken,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mcpProxy'] });
+    },
+  });
+}

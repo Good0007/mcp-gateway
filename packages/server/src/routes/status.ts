@@ -5,7 +5,7 @@
 
 import { Hono } from 'hono';
 import { getAgent, hasAgent } from '../agent.js';
-import type { AgentStatusResponse } from '@mcp-agent/shared';
+import type { AgentStatusResponse } from '@mcp-gateway/shared';
 
 const app = new Hono();
 
@@ -56,6 +56,23 @@ app.get('/', async (c) => {
   } catch (error) {
     console.error('Status route error:', error);
     return c.json({ error: 'Failed to get status' }, 500);
+  }
+});
+
+// POST /api/status/reconnect - Force reconnection to Xiaozhi
+app.post('/reconnect', async (c) => {
+  try {
+    if (!hasAgent()) {
+      return c.json({ error: 'Agent not initialized' }, 500);
+    }
+
+    const agent = await getAgent();
+    await agent.reconnect();
+
+    return c.json({ success: true, message: 'Reconnection triggered' });
+  } catch (error: any) {
+    console.error('Reconnect route error:', error);
+    return c.json({ error: error.message || 'Failed to reconnect' }, 500);
   }
 });
 

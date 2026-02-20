@@ -1,159 +1,159 @@
 /**
  * Plugins API Routes
- * Plugin marketplace endpoints
+ * Proxy for MCP World API to avoid CORS issues
  */
 
 import { Hono } from 'hono';
-import type { PluginListResponse, PluginMetadata } from '@mcp-agent/shared';
 
 const app = new Hono();
 
-// Mock plugin data (in real app, this would come from a registry/database)
-const mockPlugins: PluginMetadata[] = [
-  {
-    id: 'filesystem',
-    name: 'Filesystem',
-    description: '文件系统操作工具集，支持读写文件、列出目录等',
-    version: '2.1.0',
-    author: 'ModelContext Protocol',
-    type: 'stdio',
-    official: true,
-    downloads: 3500,
-    rating: 4.9,
-    tags: ['filesystem', 'files', 'official'],
-    repository: 'https://github.com/modelcontextprotocol/servers',
-    installCommand: 'npx @modelcontextprotocol/server-filesystem',
-    config: {
-      type: 'stdio' as any,
-      command: 'npx',
-      args: ['@modelcontextprotocol/server-filesystem', '/path/to/allowed/directory'],
-    },
-  },
-  {
-    id: 'brave-search',
-    name: 'Brave Search',
-    description: '集成 Brave 搜索引擎，提供网页搜索能力',
-    version: '1.5.2',
-    author: 'ModelContext Protocol',
-    type: 'stdio',
-    official: true,
-    downloads: 890,
-    rating: 4.6,
-    tags: ['search', 'web', 'brave', 'official'],
-    repository: 'https://github.com/modelcontextprotocol/servers',
-    installCommand: 'npx @modelcontextprotocol/server-brave-search',
-  },
-  {
-    id: 'github',
-    name: 'GitHub',
-    description: 'GitHub 仓库操作工具，支持创建 issue、PR、搜索代码等',
-    version: '3.0.1',
-    author: 'ModelContext Protocol',
-    type: 'stdio',
-    official: true,
-    downloads: 2100,
-    rating: 4.8,
-    tags: ['github', 'git', 'vcs', 'official'],
-    repository: 'https://github.com/modelcontextprotocol/servers',
-    installCommand: 'npx @modelcontextprotocol/server-github',
-  },
-  {
-    id: 'postgres',
-    name: 'PostgreSQL',
-    description: 'PostgreSQL 数据库工具，支持查询和管理数据库',
-    version: '1.2.0',
-    author: 'ModelContext Protocol',
-    type: 'stdio',
-    official: true,
-    downloads: 1560,
-    rating: 4.7,
-    tags: ['database', 'postgres', 'sql', 'official'],
-    repository: 'https://github.com/modelcontextprotocol/servers',
-    installCommand: 'npx @modelcontextprotocol/server-postgres',
-  },
-  {
-    id: 'slack',
-    name: 'Slack',
-    description: 'Slack 集成工具，支持发送消息、创建频道等',
-    version: '2.3.0',
-    author: 'ModelContext Protocol',
-    type: 'stdio',
-    official: true,
-    downloads: 980,
-    rating: 4.5,
-    tags: ['slack', 'messaging', 'communication', 'official'],
-    repository: 'https://github.com/modelcontextprotocol/servers',
-    installCommand: 'npx @modelcontextprotocol/server-slack',
-  },
-  {
-    id: 'google-drive',
-    name: 'Google Drive',
-    description: 'Google Drive 文件管理工具',
-    version: '1.1.0',
-    author: 'ModelContext Protocol',
-    type: 'stdio',
-    official: true,
-    downloads: 1200,
-    rating: 4.4,
-    tags: ['google', 'drive', 'cloud', 'storage', 'official'],
-    repository: 'https://github.com/modelcontextprotocol/servers',
-    installCommand: 'npx @modelcontextprotocol/server-google-drive',
-  },
-];
+// MCP World API configuration
+const MCP_WORLD_API = 'https://www.mcpworld.com/api/mcp-market/servers';
+const REQUEST_TIMEOUT = 10000; // 10 seconds
 
-// GET /api/plugins - List available plugins
+/**
+ * MCP World API Response Type
+ */
+interface MCPWorldResponse {
+  code: number;
+  data: any;
+  status: number;
+}
+
+/**
+ * Fetch data from MCP World API with timeout
+ */
+async function fetchMCPWorld(params: Record<string, string>) {
+  const url = new URL(MCP_WORLD_API);
+  Object.entries(params).forEach(([key, value]) => {
+    url.searchParams.append(key, value);
+  });
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+  try {
+    const response = await fetch(url.toString(), {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'MCP-Agent/1.0',
+      },
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`MCP World API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json() as MCPWorldResponse;
+    
+    if (data.code !== 0) {
+      throw new Error(`MCP World API returned error code: ${data.code}`);
+    }
+
+    return data.data;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timeout', { cause: error });
+    }
+    throw error;
+  }
+}
+
+/**
+ * GET /api/plugins
+ * Query parameters:
+ * - wd: search keyword or category key (default: "all")
+ * - type: query type (default: "tag")
+ * - pn: page number, 0-based (default: 0)
+ * - lg: language, "zh" or "en" (default: "zh")
+ * - pl: page limit (default: 100)
+ */
 app.get('/', async (c) => {
   try {
-    // In real app: fetch from external registry or database
-    // Support query params: ?search=xxx&tag=xxx&official=true
-    const searchQuery = c.req.query('search')?.toLowerCase();
-    const tagFilter = c.req.query('tag');
-    const officialOnly = c.req.query('official') === 'true';
+    const wd = c.req.query('wd') || 'all';
+    // const type = c.req.query('type') || 'tag'; 
+    const pn = c.req.query('pn') || '0';
+    const lg = c.req.query('lg') || 'zh';
+    const pl = c.req.query('pl') || '100';
 
-    let filtered = mockPlugins;
-
-    if (searchQuery) {
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(searchQuery) ||
-        p.description.toLowerCase().includes(searchQuery) ||
-        p.tags.some(t => t.includes(searchQuery))
-      );
+    // 如果 wd 不是 'all' 且没有指定 type，则认为是普通搜索 type=normal
+    // 根据需求：https://www.mcpworld.com/api/mcp-market/servers?wd=%E6%95%B0%E6%8D%AE%E5%BA%93&type=normal&pn=0&lg=zh&pl=30
+    let type = c.req.query('type');
+    if (!type) {
+      if (wd === 'all') {
+        type = 'tag';
+      } else {
+        type = 'normal';
+      }
     }
 
-    if (tagFilter) {
-      filtered = filtered.filter(p => p.tags.includes(tagFilter));
-    }
+    const data = await fetchMCPWorld({
+      wd,
+      type,
+      pn,
+      lg,
+      pl,
+    });
 
-    if (officialOnly) {
-      filtered = filtered.filter(p => p.official);
-    }
-
-    const response: PluginListResponse = {
-      plugins: filtered,
-      total: filtered.length,
-    };
-
-    return c.json(response);
+    return c.json(data);
   } catch (error) {
-    console.error('Plugins list error:', error);
-    return c.json({ error: 'Failed to list plugins' }, 500);
+    console.error('MCP World API proxy error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to fetch plugins';
+    return c.json({ 
+      error: message,
+      fallback: true,
+    }, 500);
   }
 });
 
-// GET /api/plugins/:id - Get plugin detail
-app.get('/:id', async (c) => {
+/**
+ * GET /api/plugins/detail/:id
+ * Get server detail by ID
+ * Query parameters:
+ * - lg: language, "zh" or "en" (default: "zh")
+ */
+app.get('/detail/:id', async (c) => {
   try {
     const id = c.req.param('id');
-    const plugin = mockPlugins.find(p => p.id === id);
+    const lg = c.req.query('lg') || 'zh';
+    
+    const url = `https://www.mcpworld.com/api/mcp-market/server/detail?id=${id}&lg=${lg}`;
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-    if (!plugin) {
-      return c.json({ error: 'Plugin not found' }, 404);
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'MCP-Agent/1.0',
+      },
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`MCP World API error: ${response.status} ${response.statusText}`);
     }
 
-    return c.json(plugin);
+    const result = await response.json() as MCPWorldResponse;
+    
+    if (result.code !== 0) {
+      throw new Error(`MCP World API returned error code: ${result.code}`);
+    }
+
+    return c.json(result.data);
   } catch (error) {
     console.error('Plugin detail error:', error);
-    return c.json({ error: 'Failed to get plugin detail' }, 500);
+    const message = error instanceof Error ? error.message : 'Failed to get plugin detail';
+    return c.json({ 
+      error: message,
+      fallback: true,
+    }, 500);
   }
 });
 

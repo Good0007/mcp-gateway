@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * MCP Agent CLI
- * Command-line interface for running the MCP agent
+ * Mcp Gateway CLI
+ * Command-line interface for running the Mcp Gateway
  */
 
-import { MCPAgent, logger } from '@mcp-agent/core';
+import { MCPAgent, logger } from '@mcp-gateway/core';
 import { config } from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -24,7 +24,7 @@ function parseArgs() {
   const args = process.argv.slice(2);
   const rawPath =
     args.find((arg) => arg.startsWith('--config='))?.split('=')[1] ||
-    process.env.MCP_AGENT_CONFIG ||
+    process.env.MCP_GATEWAY_CONFIG ||
     'config';  // Default to config directory
 
   // If not absolute, resolve relative to project root
@@ -41,7 +41,7 @@ function parseArgs() {
 async function main() {
   const { configPath } = parseArgs();
 
-  logger.info('Starting MCP Agent', { configPath });
+  logger.info('Starting Mcp Gateway', { configPath });
 
   // Create agent
   const agent = new MCPAgent(configPath);

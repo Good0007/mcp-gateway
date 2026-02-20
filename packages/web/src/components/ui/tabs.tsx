@@ -78,7 +78,7 @@ export function TabsTrigger({ value: triggerValue, className, children, ...props
       aria-selected={isActive}
       onClick={() => onValueChange(triggerValue)}
       className={cn(
-        'inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+        'inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer',
         isActive
           ? 'bg-white dark:bg-slate-950 text-gray-900 dark:text-white shadow-sm'
           : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white',

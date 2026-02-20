@@ -102,6 +102,7 @@ export function useAddService() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.services });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.status });
+      queryClient.invalidateQueries({ queryKey: ['webConfig'] });
     },
   });
 }
@@ -129,6 +130,8 @@ export function useTools() {
   return useQuery({
     queryKey: QUERY_KEYS.tools,
     queryFn: agentApi.getTools,
+    // Refresh tools every 10 seconds to keep up with dynamic changes
+    refetchInterval: 10000, 
   });
 }
 
@@ -144,10 +147,29 @@ export function useCallTool() {
 /**
  * Get plugins
  */
-export function usePlugins() {
+export function usePlugins(params?: {
+  wd?: string;
+  type?: string;
+  pn?: number;
+  lg?: string;
+  pl?: number;
+}) {
   return useQuery({
-    queryKey: QUERY_KEYS.plugins,
-    queryFn: agentApi.getPlugins,
+    queryKey: [...QUERY_KEYS.plugins, params],
+    queryFn: () => agentApi.getPlugins(params),
+  });
+}
+
+/**
+ * Get plugin detail
+ */
+export function usePluginDetail(id: string | null, lg: string = 'zh') {
+  return useQuery({
+    queryKey: ['pluginDetail', id, lg],
+    queryFn: () => agentApi.getPluginDetail(id!, lg),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000, // 5分钟内不重新请求
+    gcTime: 10 * 60 * 1000, // 10分钟后清除缓存
   });
 }
 

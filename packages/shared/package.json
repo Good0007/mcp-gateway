@@ -1,7 +1,7 @@
 {
-  "name": "@mcp-agent/shared",
+  "name": "@mcp-gateway/shared",
   "version": "1.0.0",
-  "description": "Shared types and utilities for MCP Agent",
+  "description": "Shared types and utilities for Mcp Gateway",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
