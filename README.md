@@ -95,7 +95,7 @@ docker-compose up -d
 # 或使用 Docker 命令
 docker run -d -p 3000:3000 kangkang223/mcp-gateway:latest
 
-# 访问 Web 界面
+# 访问 Web 界面 ( 默认账户 admin/admin123 )
 open http://localhost:3000
 ```
 
@@ -108,7 +108,7 @@ bun install
 # 启动开发环境（API Server + Web 界面）
 bun run dev
 
-# 访问 Web 界面
+# 访问 Web 界面 ( 默认账户 admin/admin123 )
 open http://localhost:5174
 ```
 
@@ -223,7 +223,7 @@ MCP_GATEWAY_PASSWORD=your_secure_password
 
 - [Docker 部署指南](./docs/DOCKER.md) - 详细的 Docker 部署说明
 - [开发者指南](./docs/DEVELOPMENT.md) - 开发环境搭建与调试
-- [架构设计](./ARCHITECTURE.md) - 系统架构说明
+- [架构设计](./docs/ARCHITECTURE.md) - 系统架构说明
 
 ## 🛠️ 常用命令
 
