@@ -15,6 +15,7 @@ export interface XiaozhiEndpoint {
 export interface McpProxyConfig {
   enabled: boolean;
   token?: string;
+  enabledServices?: string[];
 }
 
 export interface WebConfigData {
@@ -24,6 +25,7 @@ export interface WebConfigData {
   xiaozhi: {
     endpoints: XiaozhiEndpoint[];
     currentEndpointId?: string;
+    enabledServices?: string[];
   };
   mcpProxy: McpProxyConfig;
   preferences: {

@@ -59,4 +59,21 @@ app.get('/', async (c) => {
   }
 });
 
+// POST /api/status/reconnect - Force reconnection to Xiaozhi
+app.post('/reconnect', async (c) => {
+  try {
+    if (!hasAgent()) {
+      return c.json({ error: 'Agent not initialized' }, 500);
+    }
+
+    const agent = await getAgent();
+    await agent.reconnect();
+
+    return c.json({ success: true, message: 'Reconnection triggered' });
+  } catch (error: any) {
+    console.error('Reconnect route error:', error);
+    return c.json({ error: error.message || 'Failed to reconnect' }, 500);
+  }
+});
+
 export default app;

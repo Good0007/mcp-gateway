@@ -127,6 +127,21 @@ export function useUpdatePreferences() {
   });
 }
 
+/**
+ * Hook to update Xiaozhi configuration
+ */
+export function useUpdateXiaozhi() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: configApi.updateXiaozhi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['endpoints'] });
+      queryClient.invalidateQueries({ queryKey: ['webConfig'] });
+    },
+  });
+}
+
 // ==================== MCP Proxy ====================
 
 /**

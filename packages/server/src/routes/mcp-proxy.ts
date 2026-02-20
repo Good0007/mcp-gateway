@@ -11,8 +11,76 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { getAgent } from '../agent.js';
+import { AgentEvent } from '@mcp-agent/core';
 
 const app = new Hono();
+
+/* ------------------------------------------------------------------ */
+/*  Notification Logic                                                 */
+/* ------------------------------------------------------------------ */
+
+// Setup listener for config changes to notify clients
+// We use a global variable to ensure listener is only set up once
+// even if this file is imported multiple times or Hono re-initializes routes
+declare global {
+  var _mcpProxyListenerSetup: boolean;
+}
+
+if (!global._mcpProxyListenerSetup) {
+  global._mcpProxyListenerSetup = true;
+  
+  // Use setImmediate to allow other modules to initialize
+  setTimeout(async () => {
+    try {
+      const agent = await getAgent();
+
+      console.log('[MCP Proxy] Setting up TOOLS_UPDATED listener on agent...');
+
+      // Listen for AgentEvent.TOOLS_UPDATED — fired by mcp-agent AFTER services have fully
+      // reloaded (add / remove / update) so clients always see a consistent tool list.
+      agent.on(AgentEvent.TOOLS_UPDATED, () => {
+        console.log('[MCP Proxy] Received TOOLS_UPDATED event, notifying clients');
+        notifyClientsOfToolChange();
+      });
+
+      console.log('[MCP Proxy] TOOLS_UPDATED listener setup successfully');
+    } catch (error) {
+      console.error('[MCP Proxy] Failed to setup notification listener:', error);
+      global._mcpProxyListenerSetup = false; // Retry next time if failed
+    }
+  }, 1000);
+}
+
+function notifyClientsOfToolChange() {
+  const legacyCount = legacySessions.size;
+  const streamableCount = streamableSessions.size;
+  const clientCount = legacyCount + streamableCount;
+  if (clientCount === 0) return;
+
+  console.log(`[MCP Proxy] Notifying ${legacyCount} SSE + ${streamableCount} Streamable-HTTP clients of tool list update`);
+
+  const notification = {
+    jsonrpc: '2.0',
+    method: 'notifications/tools/list_changed',
+    params: {},
+  };
+
+  // Send the standard MCP notification through the live SSE stream.
+  // Well-behaved clients (VS Code) will react by calling tools/list.
+  // The SSE stream stays alive — do NOT close it. Trae's SSE client
+  // does not handle server-side disconnects gracefully (enters a
+  // permanent error state instead of reconnecting).
+  for (const session of legacySessions.values()) {
+    session.responseHandler(notification).catch(err => {
+      console.error(`[MCP Proxy] Failed to notify SSE session ${session.sessionId}:`, err);
+    });
+  }
+
+  // Keep Streamable HTTP sessions intact.
+  // VS Code may refresh tools using the existing mcp-session-id after receiving
+  // tools/list_changed via SSE. Clearing sessions here causes avoidable
+  // "Session not found" (404) errors for in-flight follow-up requests.
+}
 
 /* ------------------------------------------------------------------ */
 /*  Auth & enabled check middleware                                    */
@@ -30,6 +98,7 @@ async function validateAccess(c: any): Promise<Response | null> {
 
     // Check if proxy is enabled
     if (!proxyConfig.enabled) {
+      console.warn('[MCP Proxy] Access denied: Proxy is disabled');
       return c.json(
         { jsonrpc: '2.0', error: { code: -32000, message: 'MCP Proxy is disabled' }, id: null },
         403,
@@ -44,6 +113,11 @@ async function validateAccess(c: any): Promise<Response | null> {
         : null;
 
       if (bearerToken !== proxyConfig.token) {
+        console.warn('[MCP Proxy] Access denied: Invalid or missing token', {
+          receivedLength: bearerToken?.length || 0,
+          expectedLength: proxyConfig.token.length,
+          receivedStart: bearerToken?.slice(0, 3) || 'null',
+        });
         return c.json(
           { jsonrpc: '2.0', error: { code: -32000, message: 'Unauthorized: invalid or missing token' }, id: null },
           401,
@@ -73,6 +147,8 @@ const streamableSessions = new Map<string, StreamableSession>();
 interface LegacySSESession {
   sessionId: string;
   responseHandler: (data: any) => Promise<void>;
+  /** Close the SSE stream from the server side, forcing client to reconnect */
+  close: () => void;
 }
 const legacySessions = new Map<string, LegacySSESession>();
 
@@ -126,13 +202,14 @@ async function processMessage(message: any): Promise<any> {
 
       case 'tools/list': {
         const tools = await aggregator.getAllTools();
+        console.log(`[MCP Proxy] tools/list request: found ${tools.length} tools`);
         result = {
           tools: tools.map((t) => ({
             name: t.name,
             description: t.description,
             inputSchema: {
               type: 'object' as const,
-              properties: Object.entries(t.parameters).reduce(
+              properties: t.parameters ? Object.entries(t.parameters).reduce(
                 (acc, [key, param]) => {
                   acc[key] = {
                     type: param.type,
@@ -151,13 +228,14 @@ async function processMessage(message: any): Promise<any> {
                   return acc;
                 },
                 {} as Record<string, any>,
-              ),
-              required: Object.entries(t.parameters)
+              ) : {},
+              required: t.parameters ? Object.entries(t.parameters)
                 .filter(([_, p]) => p.required)
-                .map(([name]) => name),
+                .map(([name]) => name) : [],
             },
           })),
         };
+        console.log(`[MCP Proxy] tools/list response: ${JSON.stringify(result.tools.map((t: any) => t.name))}`);
         break;
       }
 
@@ -202,9 +280,17 @@ async function processMessage(message: any): Promise<any> {
 /* ================================================================== */
 
 app.post('/sse', async (c) => {
+  console.log('[MCP Proxy] POST /sse request received', {
+    headers: c.req.header(),
+    query: c.req.query(),
+  });
+
   try {
     const denied = await validateAccess(c);
-    if (denied) return denied;
+    if (denied) {
+      console.warn('[MCP Proxy] POST /sse access denied');
+      return denied;
+    }
 
     const body = await c.req.json();
 
@@ -304,45 +390,86 @@ app.post('/sse', async (c) => {
 /* ================================================================== */
 
 app.get('/sse', async (c) => {
+  console.log('[MCP Proxy] GET /sse request received', {
+    headers: c.req.header(),
+    query: c.req.query(),
+  });
+
   const denied = await validateAccess(c);
-  if (denied) return denied;
+  if (denied) {
+    console.warn('[MCP Proxy] GET /sse access denied');
+    return denied;
+  }
 
   const sessionId = generateSessionId();
 
+  // Explicitly set SSE headers
+  c.header('Content-Type', 'text/event-stream');
+  c.header('Cache-Control', 'no-cache');
+  c.header('Connection', 'keep-alive');
+
   return streamSSE(c, async (stream) => {
     let isClosed = false;
+
+    // Cleanup function — removes session and aborts stream immediately
+    const cleanup = () => {
+      if (isClosed) return;
+      isClosed = true;
+      legacySessions.delete(sessionId);
+      console.log(`[MCP Proxy][SSE] stream closed: ${sessionId}`);
+      // Abort the underlying stream so sleep() and writeSSE() stop
+      // immediately, causing the SSE connection to close right away.
+      stream.abort();
+    };
 
     const session: LegacySSESession = {
       sessionId,
       responseHandler: async (data: any) => {
         if (isClosed) return;
-        await stream.writeSSE({ event: 'message', data: JSON.stringify(data) });
+        try {
+          await stream.writeSSE({ event: 'message', data: JSON.stringify(data) });
+        } catch (e) {
+          console.error(`[MCP Proxy][SSE] write error for session ${sessionId}:`, e);
+          cleanup();
+        }
+      },
+      close: () => {
+        cleanup();
       },
     };
 
     legacySessions.set(sessionId, session);
 
     // Tell client where to POST messages
-    const endpointPath = `/mcp/sse?sessionId=${sessionId}`;
+    let baseUrl = '';
+    try {
+      const requestUrl = new URL(c.req.url);
+      baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
+    } catch (e) {
+      // Fallback if c.req.url is relative
+      const host = c.req.header('host') || 'localhost';
+      const proto = c.req.header('x-forwarded-proto') || 'http';
+      baseUrl = `${proto}://${host}`;
+    }
+    const endpointPath = `${baseUrl}/mcp/sse?sessionId=${sessionId}`;
+    
     await stream.writeSSE({ event: 'endpoint', data: endpointPath });
     console.log(`[MCP Proxy][SSE] stream opened: ${sessionId}  endpoint=${endpointPath}`);
 
-    // Keep-alive
-    const ping = setInterval(async () => {
-      if (isClosed) { clearInterval(ping); return; }
-      try { await stream.writeSSE({ event: 'ping', data: '' }); }
-      catch { clearInterval(ping); }
-    }, 15_000);
+    // Register abort listener
+    stream.onAbort(cleanup);
 
-    const cleanup = () => {
-      isClosed = true;
-      clearInterval(ping);
-      legacySessions.delete(sessionId);
-      console.log(`[MCP Proxy][SSE] stream closed: ${sessionId}`);
-    };
-
-    c.req.raw.signal.addEventListener('abort', cleanup);
-    await stream.onAbort(cleanup);
+    // Keep connection alive loop
+    while (!isClosed) {
+      try {
+        await stream.writeSSE({ event: 'ping', data: '' });
+      } catch (e) {
+        console.error(`[MCP Proxy][SSE] ping error for session ${sessionId}:`, e);
+        cleanup();
+        break;
+      }
+      await stream.sleep(15000);
+    }
   });
 });
 

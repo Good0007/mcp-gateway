@@ -15,8 +15,9 @@ console.log(`🚀 MCP Agent API Server starting on port ${port}...`);
 serve({
   fetch: app.fetch,
   port,
+  hostname: '0.0.0.0',
 }, (info) => {
-  console.log(`✅ Server running at http://localhost:${info.port}`);
+  console.log(`✅ Server running at http://${info.address}:${info.port}`);
   console.log('');
   
   console.log('📡 API endpoints:');

@@ -106,6 +106,29 @@ app.post('/import', async (c) => {
   }
 });
 
+// PATCH /api/config/xiaozhi - Update Xiaozhi configuration
+app.patch('/xiaozhi', async (c) => {
+  try {
+    const agent = await getAgent();
+    const webConfig = agent.getWebConfigManager();
+    
+    if (!webConfig) {
+      return c.json({ error: 'Web config manager not initialized' }, 500);
+    }
+
+    const updates = await c.req.json();
+    await webConfig.updateXiaozhi(updates);
+
+    return c.json({ 
+      success: true, 
+      message: 'Xiaozhi configuration updated',
+    });
+  } catch (error: any) {
+    console.error('Update Xiaozhi config error:', error);
+    return c.json({ error: error.message || 'Failed to update Xiaozhi config' }, 500);
+  }
+});
+
 // ==================== Endpoint Management ====================
 
 // GET /api/config/endpoints - Get all endpoints

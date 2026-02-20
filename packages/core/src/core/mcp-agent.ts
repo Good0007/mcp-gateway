@@ -21,6 +21,8 @@ export enum AgentEvent {
   READY = 'agent:ready',
   ERROR = 'agent:error',
   CONFIG_CHANGED = 'agent:config:changed',
+  /** Emitted after services have fully reloaded and tools are ready */
+  TOOLS_UPDATED = 'agent:tools:updated',
 }
 
 /**
@@ -28,12 +30,17 @@ export enum AgentEvent {
  */
 export class MCPAgent extends EventEmitter {
   private registry: ServiceRegistry;
-  private aggregator: ToolAggregator;
+  private xiaozhiAggregator: ToolAggregator;
+  private proxyAggregator: ToolAggregator;
   private connection: XiaozhiConnection | null = null;
   private webConfigManager: WebConfigManager;
   private runtimeStateManager: RuntimeStateManager;
   private configDir: string;
   private isRunning = false;
+  /** Suppress tool-change checks during initial startup */
+  private isInitializing = false;
+  /** Debounce timer for coalescing rapid tool-change checks (e.g. restart = stop+start) */
+  private checkNotifyDebounce: NodeJS.Timeout | null = null;
 
   /**
    * Create MCP Agent instance
@@ -56,7 +63,8 @@ export class MCPAgent extends EventEmitter {
 
     // Initialize components
     this.registry = new ServiceRegistry();
-    this.aggregator = new ToolAggregator(this.registry);
+    this.xiaozhiAggregator = new ToolAggregator(this.registry);
+    this.proxyAggregator = new ToolAggregator(this.registry);
     this.webConfigManager = new WebConfigManager(this.configDir);
     this.runtimeStateManager = new RuntimeStateManager(this.configDir);
 
@@ -65,20 +73,32 @@ export class MCPAgent extends EventEmitter {
   }
 
   /**
-   * Setup event handlers for all components
+   * Setup event handlers for all components.
+   *
+   * Design: Tool-change notifications are driven by a SINGLE method
+   * `checkAndNotifyToolChanges()` that computes tool fingerprints for
+   * each consumer (Xiaozhi / Proxy) independently.  This means:
+   *   - Only the consumer whose tools actually changed gets notified.
+   *   - Changing a service not used by either consumer triggers nothing.
+   *   - A service shared by both consumers notifies both when stopped.
+   *
+   * Registry events (SERVICE_STARTED/STOPPED) are the primary triggers.
+   * Config events (XIAOZHI_UPDATED/MCP_PROXY_UPDATED) handle filter changes.
+   * SERVICE_ADDED/REMOVED/UPDATED are handled by services.ts directly;
+   * mcp-agent only schedules a lightweight tool-change check as safety net.
    */
   private setupEventHandlers(): void {
-    // Registry events
+    // ── Registry lifecycle events ──────────────────────────────────
+    // When a service actually starts or stops, the available tools may
+    // have changed.  Schedule a debounced tool-change check.
     this.registry.on(RegistryEvent.SERVICE_STARTED, (serviceId: string) => {
       logger.info('Service started', { serviceId });
-      // Note: Tools change notifications handled by config reload reconnection
-      // For standard MCP support: void this.connection?.notifyToolsUpdated();
+      this.scheduleToolChangeCheck();
     });
 
     this.registry.on(RegistryEvent.SERVICE_STOPPED, (serviceId: string) => {
       logger.info('Service stopped', { serviceId });
-      // Note: Tools change notifications handled by config reload reconnection
-      // For standard MCP support: void this.connection?.notifyToolsUpdated();
+      this.scheduleToolChangeCheck();
     });
 
     this.registry.on(RegistryEvent.SERVICE_ERROR, (serviceId: string, error: Error) => {
@@ -86,21 +106,111 @@ export class MCPAgent extends EventEmitter {
       this.emit(AgentEvent.ERROR, error);
     });
 
-    // Web config events
+    // ── Config load / save → refresh aggregator filters ───────────
+    this.webConfigManager.on(WebConfigEvent.LOADED, () => {
+      this.updateAggregators();
+    });
+    this.webConfigManager.on(WebConfigEvent.SAVED, () => {
+      this.updateAggregators();
+    });
+
+    // ── Consumer filter changes ───────────────────────────────────
+    // Xiaozhi / Proxy enabled-services lists changed.
+    // No registry operations needed — just re-evaluate which tools
+    // each consumer can see and notify if the list changed.
+    this.webConfigManager.on(WebConfigEvent.XIAOZHI_UPDATED, () => {
+      logger.info('Xiaozhi configuration updated, checking tool changes...');
+      this.scheduleToolChangeCheck();
+    });
+
+    this.webConfigManager.on(WebConfigEvent.MCP_PROXY_UPDATED, () => {
+      logger.info('MCP Proxy configuration updated, checking tool changes...');
+      this.scheduleToolChangeCheck();
+    });
+
+    // ── Service config mutations (safety net) ─────────────────────
+    // services.ts handles registry operations (register/unregister)
+    // directly.  These handlers are a safety net: they schedule a
+    // lightweight tool-change check but do NOT perform heavy reload.
     this.webConfigManager.on(WebConfigEvent.SERVICE_ADDED, () => {
-      logger.info('Service added via Web UI, reloading...');
-      void this.reloadServices();
+      this.scheduleToolChangeCheck();
     });
-
     this.webConfigManager.on(WebConfigEvent.SERVICE_REMOVED, () => {
-      logger.info('Service removed via Web UI, reloading...');
-      void this.reloadServices();
+      this.scheduleToolChangeCheck();
+    });
+    this.webConfigManager.on(WebConfigEvent.SERVICE_UPDATED, () => {
+      this.scheduleToolChangeCheck();
     });
 
+    // ── Errors ────────────────────────────────────────────────────
     this.webConfigManager.on(WebConfigEvent.ERROR, (error: Error) => {
       logger.error('Web config error', { error });
       this.emit(AgentEvent.ERROR, error);
     });
+  }
+
+  // ================================================================
+  //  Tool-change detection & notification
+  // ================================================================
+
+  /**
+   * Schedule a debounced tool-change check.
+   * Multiple rapid events (e.g. restart = stop + start) are coalesced
+   * into a single check that runs after the dust settles.
+   */
+  private scheduleToolChangeCheck(): void {
+    if (this.isInitializing) return;
+    if (this.checkNotifyDebounce) {
+      clearTimeout(this.checkNotifyDebounce);
+    }
+    this.checkNotifyDebounce = setTimeout(() => {
+      this.checkNotifyDebounce = null;
+      void this.doCheckAndNotifyToolChanges();
+    }, 500);
+  }
+
+  /**
+   * Core logic: independently check each consumer's tool fingerprint
+   * and only notify the one(s) whose tools actually changed.
+   */
+  private async doCheckAndNotifyToolChanges(): Promise<void> {
+    try {
+      // Ensure aggregator filters reflect latest config
+      this.updateAggregators();
+
+      const xiaozhiChanged = await this.xiaozhiAggregator.snapshotAndCheckChanged();
+      const proxyChanged = await this.proxyAggregator.snapshotAndCheckChanged();
+
+      if (xiaozhiChanged && this.connection?.isConnected()) {
+        logger.info('Xiaozhi tool list changed, reconnecting to refresh tools');
+        await this.connection.reconnect().catch(err =>
+          logger.error('Xiaozhi reconnect failed after tool change', { error: err })
+        );
+      }
+
+      if (proxyChanged) {
+        logger.info('Proxy tool list changed, notifying SSE/Streamable clients');
+        this.emit(AgentEvent.TOOLS_UPDATED);
+      }
+
+      if (!xiaozhiChanged && !proxyChanged) {
+        logger.debug('Tool lists unchanged, no notifications needed');
+      }
+    } catch (error) {
+      logger.error('Failed to check and notify tool changes', { error });
+    }
+  }
+
+  /**
+   * Public: immediately check tool changes for both consumers.
+   * Cancels any pending debounced check so there is no double-fire.
+   */
+  async checkAndNotifyToolChanges(): Promise<void> {
+    if (this.checkNotifyDebounce) {
+      clearTimeout(this.checkNotifyDebounce);
+      this.checkNotifyDebounce = null;
+    }
+    await this.doCheckAndNotifyToolChanges();
   }
 
   /**
@@ -138,9 +248,16 @@ export class MCPAgent extends EventEmitter {
       this.registry.setRuntimeStateManager(this.runtimeStateManager);
 
       // Register all services from web config
+      this.isInitializing = true;
       for (const serviceConfig of webConfig.services) {
         await this.registry.register(serviceConfig);
       }
+
+      // Take initial tool snapshots (so subsequent checks detect real changes)
+      this.updateAggregators();
+      await this.xiaozhiAggregator.snapshotAndCheckChanged();
+      await this.proxyAggregator.snapshotAndCheckChanged();
+      this.isInitializing = false;
 
       // Get current endpoint
       const currentEndpoint = this.webConfigManager.getCurrentEndpoint();
@@ -166,7 +283,7 @@ export class MCPAgent extends EventEmitter {
           reconnectInterval: prefs.reconnectInterval || 5000,
           maxReconnectAttempts: prefs.maxReconnectAttempts || 10,
         },
-        this.aggregator
+        this.xiaozhiAggregator
       );
 
       // Setup connection events
@@ -195,6 +312,7 @@ export class MCPAgent extends EventEmitter {
         endpoint: currentEndpoint.name,
       });
     } catch (error) {
+      this.isInitializing = false;
       logger.error('Failed to start agent', { error });
       this.emit(AgentEvent.ERROR, error);
       throw error;
@@ -202,46 +320,14 @@ export class MCPAgent extends EventEmitter {
   }
 
   /**
-   * Reload services from configuration
+   * Reconnect to xiaozhi
    */
-  private async reloadServices(): Promise<void> {
-    try {
-      const webConfig = await this.webConfigManager.load();
-      
-      // Get current service IDs
-      const currentIds = new Set(this.registry.getServiceIds());
-      const newIds = new Set(webConfig.services.map(s => s.id));
-
-      // Remove services that are no longer in config
-      for (const id of currentIds) {
-        if (!newIds.has(id)) {
-          logger.info('Removing service no longer in config', { id });
-          await this.registry.unregister(id);
-        }
-      }
-
-      // Add or update services
-      for (const serviceConfig of webConfig.services) {
-        if (currentIds.has(serviceConfig.id)) {
-          // Service exists - restart if config changed
-          logger.info('Updating service', { id: serviceConfig.id });
-          await this.registry.unregister(serviceConfig.id);
-          await this.registry.register(serviceConfig);
-        } else {
-          // New service - register it
-          logger.info('Adding new service', { id: serviceConfig.id });
-          await this.registry.register(serviceConfig);
-        }
-      }
-
-      // Reconnect to xiaozhi to refresh tool list
-      if (this.connection?.isConnected()) {
-        logger.info('Configuration changed, reconnecting to xiaozhi to refresh tools');
-        await this.connection.reconnect();
-      }
-    } catch (error) {
-      logger.error('Failed to reload services', { error });
-      throw error;
+  async reconnect(): Promise<void> {
+    if (this.connection && this.connection.isConnected()) {
+      logger.info('Manual reconnection requested');
+      await this.connection.reconnect();
+    } else {
+      logger.warn('Cannot reconnect: not connected to xiaozhi');
     }
   }
 
@@ -313,10 +399,59 @@ export class MCPAgent extends EventEmitter {
   }
 
   /**
-   * Get tool aggregator
+   * Get the tool aggregator for Xiaozhi
+   */
+  getXiaozhiAggregator(): ToolAggregator {
+    return this.xiaozhiAggregator;
+  }
+
+  /**
+   * Get the tool aggregator for MCP Proxy
+   */
+  getProxyAggregator(): ToolAggregator {
+    return this.proxyAggregator;
+  }
+
+  /**
+   * @deprecated Use getProxyAggregator() instead
    */
   getAggregator(): ToolAggregator {
-    return this.aggregator;
+    return this.proxyAggregator;
+  }
+
+  /**
+   * Update aggregators with current config
+   */
+  private updateAggregators(): void {
+    const config = this.webConfigManager.getConfig();
+    if (!config) return;
+
+    // Update Xiaozhi aggregator filter
+    // Use optional chaining to handle missing xiaozhi section
+    const xiaozhiServices = new Set(config.xiaozhi?.enabledServices);
+    // If enabledServices is undefined (legacy), allow all
+    const allowAllXiaozhi = !config.xiaozhi?.enabledServices;
+    
+    this.xiaozhiAggregator.setFilter((serviceId) => {
+      if (allowAllXiaozhi) return true;
+      return xiaozhiServices.has(serviceId);
+    });
+
+    // Update Proxy aggregator filter
+    // Use optional chaining to handle missing mcpProxy section
+    const proxyServices = new Set(config.mcpProxy?.enabledServices);
+    // If enabledServices is undefined (legacy), allow all
+    const allowAllProxy = !config.mcpProxy?.enabledServices;
+
+    this.proxyAggregator.setFilter((serviceId) => {
+      if (allowAllProxy) return true;
+      return proxyServices.has(serviceId);
+    });
+
+    logger.info('Aggregators updated with service filters', {
+      xiaozhiAllowed: allowAllXiaozhi ? 'ALL' : xiaozhiServices.size,
+      proxyAllowed: allowAllProxy ? 'ALL' : proxyServices.size,
+    });
   }
 
   /**

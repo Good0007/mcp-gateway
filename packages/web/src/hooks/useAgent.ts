@@ -102,6 +102,7 @@ export function useAddService() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.services });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.status });
+      queryClient.invalidateQueries({ queryKey: ['webConfig'] });
     },
   });
 }
@@ -129,6 +130,8 @@ export function useTools() {
   return useQuery({
     queryKey: QUERY_KEYS.tools,
     queryFn: agentApi.getTools,
+    // Refresh tools every 10 seconds to keep up with dynamic changes
+    refetchInterval: 10000, 
   });
 }
 

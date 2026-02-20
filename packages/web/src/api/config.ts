@@ -173,7 +173,7 @@ export async function getMcpProxy(): Promise<{ mcpProxy: { enabled: boolean; tok
  * Update MCP proxy configuration
  */
 export async function updateMcpProxy(
-  updates: { enabled?: boolean; token?: string }
+  updates: { enabled?: boolean; token?: string; enabledServices?: string[] }
 ): Promise<{ success: boolean; message: string }> {
   const response = await fetch(`${API_BASE}/config/mcp-proxy`, {
     method: 'PATCH',
@@ -184,6 +184,26 @@ export async function updateMcpProxy(
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'Failed to update MCP proxy config');
+  }
+  
+  return response.json();
+}
+
+/**
+ * Update Xiaozhi configuration
+ */
+export async function updateXiaozhi(
+  updates: { enabledServices?: string[] }
+): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/config/xiaozhi`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to update Xiaozhi config');
   }
   
   return response.json();

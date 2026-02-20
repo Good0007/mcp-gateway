@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useServices, useStartService, useStopService, useDeleteService, useAddService, useUpdateService, useService, QUERY_KEYS } from '@/hooks/useAgent';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader, Play, Square, AlertCircle, Settings, Plus, Trash2, PlayCircle, StopCircle, X, Edit, Upload, CheckCircle2, Wrench, Terminal, Minimize2, Maximize2 } from 'lucide-react';
+import { Loader, Play, Square, AlertCircle, Settings, Plus, Trash2, PlayCircle, StopCircle, X, Edit, Upload, CheckCircle2, Terminal, Wrench } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import type { MCPServiceStatus, Tool } from '@mcp-agent/shared';
 import { parseMCPConfig } from '@/utils/mcp-config-parser';

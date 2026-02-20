@@ -3,7 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAgentStatus } from '@/hooks/useAgent';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { useAgentStatus, useServices, useTools } from '@/hooks/useAgent';
 import { 
   useEndpoints, 
   useAddEndpoint, 
@@ -11,7 +18,9 @@ import {
   useSelectEndpoint,
   useMcpProxy, 
   useUpdateMcpProxy, 
-  useGenerateProxyToken 
+  useGenerateProxyToken,
+  useWebConfig,
+  useUpdateXiaozhi
 } from '@/hooks/useWebConfig';
 import { 
   Loader, 
@@ -29,12 +38,12 @@ import {
   Activity, 
   Shield, 
   Copy, 
-  Power, 
   Info,
-  Plug,
   Code,
   Eye,
-  EyeOff
+  EyeOff,
+  Box,
+  Search,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from '@/lib/toast';
@@ -43,15 +52,24 @@ import type { McpProxyStatusResponse } from '@mcp-agent/shared';
 
 export function ConnectionPage() {
   const { t } = useTranslation();
+  // ==================== Common Hooks ====================
+  const { data: webConfigData } = useWebConfig();
+  const { data: servicesData } = useServices();
+  const { data: toolsData } = useTools();
+  
+  const services = servicesData?.services || [];
+  const tools = toolsData?.tools || [];
+
   // ==================== Client (Xiaozhi) Hooks ====================
   const { data: status, isLoading, refetch } = useAgentStatus();
   const { data: endpointsData, isLoading: endpointsLoading } = useEndpoints();
   const addEndpointMutation = useAddEndpoint();
   const removeEndpointMutation = useRemoveEndpoint();
   const selectEndpointMutation = useSelectEndpoint();
+  const updateXiaozhiMutation = useUpdateXiaozhi();
 
   // ==================== Server (Proxy) Hooks ====================
-  const { data: mcpProxyData, isLoading: mcpProxyLoading } = useMcpProxy();
+  const { data: mcpProxyData } = useMcpProxy();
   const updateMcpProxy = useUpdateMcpProxy();
   const generateToken = useGenerateProxyToken();
   const proxyConfig = mcpProxyData?.mcpProxy;
@@ -64,6 +82,47 @@ export function ConnectionPage() {
   const [proxyStatus, setProxyStatus] = useState<McpProxyStatusResponse | null>(null);
   const [proxyLoading, setProxyLoading] = useState(false);
   const [showToken, setShowToken] = useState(false);
+
+  // Service Selection States
+  const [xiaozhiEnabledServices, setXiaozhiEnabledServices] = useState<string[]>([]);
+  const [proxyEnabledServices, setProxyEnabledServices] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (webConfigData?.config?.xiaozhi) {
+      const enabled = webConfigData.config.xiaozhi.enabledServices;
+      // If enabled is undefined/null, it means all services are enabled by default
+      setXiaozhiEnabledServices(enabled || services.map(s => s.id));
+    }
+  }, [webConfigData, services]);
+
+  useEffect(() => {
+    if (proxyConfig) {
+      const enabled = (proxyConfig as any).enabledServices;
+      setProxyEnabledServices(enabled || services.map(s => s.id));
+    }
+  }, [proxyConfig, services]);
+
+  const handleXiaozhiServicesChange = async (enabled: string[]) => {
+    setXiaozhiEnabledServices(enabled);
+    try {
+      await updateXiaozhiMutation.mutateAsync({ enabledServices: enabled });
+      // Trigger reconnection
+      await fetch('/api/status/reconnect', { method: 'POST' });
+      toast.success(t('connection.toast.update_success'));
+    } catch (error) {
+      toast.error(t('connection.toast.update_fail'));
+    }
+  };
+
+  const handleProxyServicesChange = async (enabled: string[]) => {
+    setProxyEnabledServices(enabled);
+    try {
+      await updateMcpProxy.mutateAsync({ enabledServices: enabled });
+      toast.success(t('connection.toast.update_success'));
+    } catch (error) {
+      toast.error(t('connection.toast.update_fail'));
+    }
+  };
 
   // ==================== Client Logic ====================
   const endpoints = endpointsData?.endpoints || [];
@@ -260,6 +319,16 @@ export function ConnectionPage() {
             </CardContent>
           </Card>
 
+          {/* Enabled Services for Xiaozhi */}
+          <ServiceSelector 
+            services={services}
+            tools={tools}
+            enabledServices={xiaozhiEnabledServices}
+            onChange={handleXiaozhiServicesChange}
+            title={t('connection.xiaozhi.services.title')}
+            description={t('connection.xiaozhi.services.desc')}
+          />
+
           {/* 端点管理 */}
           <Card className="dark:bg-slate-900 dark:border-slate-800">
             <CardHeader>
@@ -299,7 +368,7 @@ export function ConnectionPage() {
                   <div className="space-y-2">
                     <label className="text-xs text-gray-500 dark:text-slate-400">{t('connection.endpoint.url')}</label>
                     <Input
-                      placeholder="ws://localhost:8080"
+                      placeholder="e.g. wss://api.xiaozhi.me/v1/mcp"
                       value={newEndpointUrl}
                       onChange={(e) => setNewEndpointUrl(e.target.value)}
                       className="bg-white dark:bg-slate-900"
@@ -307,186 +376,111 @@ export function ConnectionPage() {
                   </div>
                 </div>
                 <div className="flex justify-end">
-                  <Button 
-                    onClick={handleAddEndpoint}
-                    disabled={addEndpointMutation.isPending}
-                    className="gap-2"
-                    size="sm"
-                  >
-                    {addEndpointMutation.isPending ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Plus className="w-3.5 h-3.5" />
-                    )}
+                  <Button onClick={handleAddEndpoint} disabled={addEndpointMutation.isPending} size="sm">
+                    {addEndpointMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                     {t('connection.endpoint.add_btn')}
                   </Button>
                 </div>
               </div>
 
               {/* 端点列表 */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium text-gray-900 dark:text-white">
-                  {t('connection.endpoint.saved')}
-                </h4>
-                {endpoints.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500 dark:text-slate-500 text-sm bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-dashed border-gray-200 dark:border-slate-700">
-                    {t('connection.endpoint.empty')}
-                  </div>
-                ) : (
-                  <div className="grid gap-3">
-                    {endpoints.map((ep) => (
-                      <div
-                        key={ep.id}
-                        className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:shadow-sm transition-shadow"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg ${
-                            ep.id === selectedEndpointId
-                              ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400'
-                              : 'bg-gray-100 text-gray-500 dark:bg-slate-800 dark:text-slate-400'
-                          }`}>
-                            <Zap className="w-4 h-4" />
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">{t('connection.endpoint.list')}</h4>
+                <div className="rounded-md border border-gray-200 dark:border-slate-700 divide-y divide-gray-100 dark:divide-slate-800">
+                  {endpoints.length === 0 ? (
+                    <div className="p-8 text-center text-sm text-gray-500 dark:text-slate-500">
+                      {t('connection.endpoint.empty')}
+                    </div>
+                  ) : (
+                    endpoints.map((ep) => (
+                      <div key={ep.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-900">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {ep.name}
+                            </span>
+                            {ep.id === selectedEndpointId && (
+                              <Badge variant="default" className="text-[10px] text-primary-600 border border-primary-200 bg-primary-50">
+                                {t('connection.endpoint.current')}
+                              </Badge>
+                            )}
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                {ep.name}
-                              </span>
-                              {ep.id === selectedEndpointId && (
-                                <Badge className="text-[10px] h-5 px-1.5 bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700">
-                                  {t('connection.endpoint.current')}
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 max-w-[300px] sm:max-w-[400px]">
-                              <p className="text-xs text-gray-500 dark:text-slate-500 font-mono mt-0.5 truncate" title={ep.url}>
-                                {ep.url}
-                              </p>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(ep.url);
-                                  toast.success(t('connection.toast.copy_success'));
-                                }}
-                                title={t('connection.endpoint.copy')}
-                              >
-                                <Copy className="w-3 h-3" />
-                              </Button>
-                            </div>
+                          <div className="text-xs text-gray-500 dark:text-slate-500 truncate mt-0.5">
+                            {ep.url}
                           </div>
                         </div>
-                        
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 ml-4">
                           {ep.id !== selectedEndpointId && (
                             <Button
                               variant="ghost"
                               size="sm"
+                              className="h-8 text-xs"
                               onClick={() => handleSwitchEndpoint(ep.id)}
-                              disabled={selectEndpointMutation.isPending}
-                              className="text-gray-500 hover:text-primary-600"
                             >
-                              {t('connection.endpoint.switch_btn')}
+                              {t('connection.endpoint.use')}
                             </Button>
                           )}
                           <Button
                             variant="ghost"
-                            size="icon"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                             onClick={() => handleDeleteEndpoint(ep.id)}
-                            disabled={removeEndpointMutation.isPending || endpoints.length <= 1}
-                            className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                            title={t('connection.endpoint.delete')}
+                            disabled={removeEndpointMutation.isPending}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    ))
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* ==================== Server Tab (Proxy) ==================== */}
+        {/* ==================== Server Tab (MCP Proxy) ==================== */}
         <TabsContent value="server" className="space-y-6">
-          {/* 代理状态概览 */}
           <Card className="dark:bg-slate-900 dark:border-slate-800">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Server className="w-5 h-5 text-primary-500" />
+                  <Server className="w-5 h-5 text-blue-500" />
                   {t('connection.proxy.title')}
                 </CardTitle>
-                <Button
-                  variant={proxyConfig?.enabled !== false ? 'primary' : 'outline'}
-                  size="sm"
-                  className="gap-2"
-                  disabled={mcpProxyLoading || updateMcpProxy.isPending}
-                  onClick={() => updateMcpProxy.mutate({ enabled: proxyConfig?.enabled === false ? true : false })}
-                >
-                  <Power className="w-4 h-4" />
-                  {proxyConfig?.enabled !== false ? t('connection.proxy.enabled') : t('connection.proxy.disabled')}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500 dark:text-slate-400">
+                    {proxyConfig?.enabled ? t('connection.proxy.enabled') : t('connection.proxy.disabled')}
+                  </span>
+                  <button
+                    onClick={() => updateMcpProxy.mutate({ enabled: !proxyConfig?.enabled })}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 ${
+                      proxyConfig?.enabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-slate-700'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        proxyConfig?.enabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                {t('connection.proxy.desc')}
+              </p>
             </CardHeader>
             <CardContent>
-              {proxyLoading || mcpProxyLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary-500" />
-                </div>
-              ) : proxyStatus ? (
+              {proxyStatus ? (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                    <div className={`p-4 rounded-lg border ${proxyConfig?.enabled !== false ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-500/20' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-500/20'}`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`text-xs font-medium ${proxyConfig?.enabled !== false ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'}`}>
-                          {t('connection.proxy.status')}
-                        </span>
-                        <Activity className={`w-4 h-4 ${proxyConfig?.enabled !== false ? 'text-emerald-500' : 'text-red-500'}`} />
-                      </div>
-                      <Badge className={proxyConfig?.enabled !== false ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}>
-                        {proxyConfig?.enabled !== false ? t('connection.proxy.running') : t('connection.proxy.disabled')}
-                      </Badge>
-                    </div>
-
-                    <div className="p-4 rounded-lg bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-gray-500 dark:text-slate-400">
-                          {t('connection.proxy.auth')}
-                        </span>
-                        <Shield className="w-4 h-4 text-gray-400 dark:text-slate-600" />
-                      </div>
-                      <Badge className={proxyConfig?.token ? 'bg-blue-500 text-white' : 'bg-gray-400 text-white'}>
-                        {proxyConfig?.token ? t('connection.proxy.auth.set') : t('connection.proxy.auth.unset')}
-                      </Badge>
-                    </div>
-
-                    <div className="p-4 rounded-lg bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-gray-500 dark:text-slate-400">
-                          {t('connection.proxy.active')}
-                        </span>
-                        <Server className="w-4 h-4 text-gray-400 dark:text-slate-600" />
-                      </div>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {proxyStatus?.stats?.activeSessions || 0}
-                      </p>
-                    </div>
-
-                    <div className="p-4 rounded-lg bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-gray-500 dark:text-slate-400">
-                          {t('connection.proxy.tools')}
-                        </span>
-                        <Plug className="w-4 h-4 text-gray-400 dark:text-slate-600" />
-                      </div>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {proxyStatus?.stats?.totalTools || 0}
-                      </p>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${proxyStatus.enabled ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {proxyStatus.enabled ? t('connection.proxy.running') : t('connection.proxy.stopped')}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-slate-500">
+                      ({t('connection.proxy.port')}: {window.location.port || '80'})
+                    </span>
                   </div>
 
                   <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/20">
@@ -535,6 +529,16 @@ export function ConnectionPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Enabled Services for MCP Proxy */}
+          <ServiceSelector 
+            services={services}
+            tools={tools}
+            enabledServices={proxyEnabledServices}
+            onChange={handleProxyServicesChange}
+            title={t('connection.proxy.services.title')}
+            description={t('connection.proxy.services.desc')}
+          />
 
           {/* Token 认证管理 */}
           <Card className="dark:bg-slate-900 dark:border-slate-800">
@@ -768,5 +772,226 @@ export function ConnectionPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+interface ServiceSelectorProps {
+  services: any[];
+  tools?: any[];
+  enabledServices?: string[];
+  onChange: (enabledServices: string[]) => void;
+  title: string;
+  description: string;
+}
+
+function ServiceSelector({ services, tools = [], enabledServices, onChange, title, description }: ServiceSelectorProps) {
+  const { t } = useTranslation();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  // Local state for modal selection
+  const [tempEnabledServices, setTempEnabledServices] = useState<string[]>([]);
+
+  // When modal opens, sync temp state with enabledServices
+  useEffect(() => {
+    if (isModalOpen) {
+      setTempEnabledServices(enabledServices || []);
+    }
+  }, [isModalOpen, enabledServices]);
+
+  const isTempEnabled = (id: string) => tempEnabledServices.includes(id);
+
+  // Filter services for modal list
+  const filteredServices = services.filter(s => 
+    (s.name || s.id).toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleToggleTemp = (id: string) => {
+    if (isTempEnabled(id)) {
+      setTempEnabledServices(prev => prev.filter(sid => sid !== id));
+    } else {
+      setTempEnabledServices(prev => [...prev, id]);
+    }
+  };
+
+  const handleSelectAllTemp = () => {
+    setTempEnabledServices(services.map(s => s.id));
+  };
+
+  const handleDeselectAllTemp = () => {
+    setTempEnabledServices([]);
+  };
+
+  const handleSave = () => {
+    onChange(tempEnabledServices);
+    setIsModalOpen(false);
+  };
+
+  const getServiceTools = (serviceId: string) => {
+    return tools.filter(t => t.serviceId === serviceId);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'running': return 'bg-emerald-500';
+      case 'stopped': return 'bg-gray-400';
+      case 'error': return 'bg-red-500';
+      default: return 'bg-gray-400';
+    }
+  };
+
+  // Get enabled services for main view
+  const enabledServicesList = enabledServices 
+    ? services.filter(s => enabledServices.includes(s.id))
+    : services; // If undefined, all are enabled
+
+  return (
+    <Card className="dark:bg-slate-900 dark:border-slate-800">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Box className="w-5 h-5 text-primary-500" />
+              {title}
+            </CardTitle>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+              {description}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsModalOpen(true)}
+              className="gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              {t('connection.service.manage')}
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent>
+        <div className="space-y-2">
+          {enabledServicesList.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {enabledServicesList.map(service => {
+                const serviceTools = getServiceTools(service.id);
+                return (
+                  <div key={service.id} className="p-3 rounded-lg border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                          {service.name || service.id}
+                        </span>
+                        <div className={`w-1.5 h-1.5 rounded-full ${getStatusColor(service.status)}`} />
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-slate-500 mt-0.5">
+                        {t('connection.service.modal.tools_available', { count: serviceTools.length })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-sm text-gray-500 dark:text-slate-500 border border-dashed border-gray-200 dark:border-slate-700 rounded-lg">
+              {t('connection.service.empty')}
+            </div>
+          )}
+        </div>
+        
+        <div className="pt-4 text-xs text-gray-500 dark:text-slate-500 border-t border-gray-100 dark:border-slate-800 mt-4">
+           <span>
+             {t('connection.service.enabled_count', { 
+               enabled: enabledServices ? enabledServices.length : services.length, 
+               total: services.length 
+             })}
+           </span>
+        </div>
+      </CardContent>
+
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {/* 增大弹窗的宽度 */}
+        <DialogContent className="max-w-[100vw] w-full max-h-[95vh] flex flex-col" >
+          <DialogHeader>
+            <DialogTitle>{t('connection.service.modal.title')}</DialogTitle>
+            <DialogDescription>
+              {t('connection.service.modal.desc', { target: title })}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 min-h-0 flex flex-col gap-4 py-4 w-120">
+            {/* Toolbar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-slate-400" />
+                <Input 
+                  placeholder={t('connection.service.modal.search')}
+                  className="pl-9 h-9 text-sm bg-white dark:bg-slate-900" 
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button variant="outline" size="sm" onClick={handleSelectAllTemp} className="flex-1 sm:flex-none h-8 text-xs">{t('connection.service.modal.all')}</Button>
+                <Button variant="outline" size="sm" onClick={handleDeselectAllTemp} className="flex-1 sm:flex-none h-8 text-xs">{t('connection.service.modal.none')}</Button>
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="flex-1 overflow-y-auto border rounded-md border-gray-200 dark:border-slate-700">
+              <div className="divide-y divide-gray-100 dark:divide-slate-800">
+                {filteredServices.map(service => {
+                  const serviceTools = getServiceTools(service.id);
+                  const isSelected = isTempEnabled(service.id);
+                  
+                  return (
+                    <div 
+                      key={service.id} 
+                      className={`flex items-center p-3 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${isSelected ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+                      onClick={() => handleToggleTemp(service.id)}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {}} // Handled by div click
+                        className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer mr-3"
+                      />
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {service.name || service.id}
+                          </span>
+                          <div className={`w-1.5 h-1.5 rounded-full ${getStatusColor(service.status)}`} />
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-slate-500 mt-0.5">
+                          {t('connection.service.modal.tools_available', { count: serviceTools.length })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {filteredServices.length === 0 && (
+                  <div className="p-8 text-center text-sm text-gray-500 dark:text-slate-500">
+                    {searchQuery ? t('connection.service.modal.no_match') : t('connection.service.modal.no_services')}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+              {t('connection.service.modal.cancel')}
+            </Button>
+            <Button variant="primary" onClick={handleSave}>
+              {t('connection.service.apply')} ({tempEnabledServices.length})
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }

@@ -139,22 +139,17 @@ app.get('/:id/sse-start', async (c) => {
         });
       });
 
-      // Update enabled state
+      // Persist enabled state (silent — no SERVICE_UPDATED event)
       const webConfigManager = agent.getWebConfigManager();
-      await webConfigManager.updateService(id, { enabled: true });
+      await webConfigManager.saveServiceEnabled(id, true);
 
-      // Reconnect Xiaozhi
-      const xiaozhi = agent.getConnection();
-      if (xiaozhi && xiaozhi.isConnected()) {
-        await xiaozhi.reconnect().catch(err => 
-          console.error('Failed to reconnect Xiaozhi:', err)
-        );
-      }
+      // Tool-change notifications are handled automatically by
+      // registry SERVICE_STARTED event → mcp-agent.scheduleToolChangeCheck()
 
-      await stream.writeSSE({
-        event: 'status',
-        data: 'success',
-      });
+    await stream.writeSSE({
+      event: 'status',
+      data: 'success',
+    });
       
       await stream.writeSSE({
         event: 'log',
@@ -201,19 +196,12 @@ app.post('/:id/start', async (c) => {
 
     await registry.start(id);
 
-    // Update enabled state in config file
+    // Persist enabled state (silent — no SERVICE_UPDATED event).
+    // Tool-change notifications handled by registry SERVICE_STARTED
+    // event → mcp-agent.scheduleToolChangeCheck()
     const webConfigManager = agent.getWebConfigManager();
-    await webConfigManager.updateService(id, { enabled: true });
-    console.log(`Service ${id} enabled state saved to config`);
-
-    // Reconnect to Xiaozhi to report service changes
-    const xiaozhi = agent.getConnection();
-    if (xiaozhi && xiaozhi.isConnected()) {
-      console.log('Service started, reconnecting to Xiaozhi to refresh tools');
-      await xiaozhi.reconnect().catch(err => 
-        console.error('Failed to reconnect Xiaozhi:', err)
-      );
-    }
+    await webConfigManager.saveServiceEnabled(id, true);
+    console.log(`Service ${id} started and enabled state saved`);
 
     return c.json({ success: true, message: `Service ${id} started` });
   } catch (error: any) {
@@ -232,19 +220,12 @@ app.post('/:id/stop', async (c) => {
 
     await registry.stop(id);
 
-    // Update enabled state in config file
+    // Persist enabled state (silent — no SERVICE_UPDATED event).
+    // Tool-change notifications handled by registry SERVICE_STOPPED
+    // event → mcp-agent.scheduleToolChangeCheck()
     const webConfigManager = agent.getWebConfigManager();
-    await webConfigManager.updateService(id, { enabled: false });
-    console.log(`Service ${id} disabled state saved to config`);
-
-    // Reconnect to Xiaozhi to report service changes
-    const xiaozhi = agent.getConnection();
-    if (xiaozhi && xiaozhi.isConnected()) {
-      console.log('Service stopped, reconnecting to Xiaozhi to refresh tools');
-      await xiaozhi.reconnect().catch(err => 
-        console.error('Failed to reconnect Xiaozhi:', err)
-      );
-    }
+    await webConfigManager.saveServiceEnabled(id, false);
+    console.log(`Service ${id} stopped and disabled state saved`);
 
     return c.json({ success: true, message: `Service ${id} stopped` });
   } catch (error: any) {
@@ -312,24 +293,18 @@ app.put('/:id', async (c) => {
       const metadata = registry.getMetadata(id);
       if (metadata?.status === 'running') {
         console.log(`Restarting service ${id} to apply changes`);
-        await registry.stop(id);
+        // Unregister (stops + removes from registry), then re-register with new config
+        await registry.unregister(id);
         
-        // Get updated config and re-register
         const services = webConfigManager.getServices();
         const updatedConfig = services.find((s) => s.id === id);
         if (updatedConfig) {
-          await registry.register(updatedConfig);
-          await registry.start(id);
+          // Re-register with enabled=true to auto-start since it was running before
+          await registry.register({ ...updatedConfig, enabled: true });
         }
-        
-        // Reconnect to Xiaozhi to report service changes
-        const xiaozhi = agent.getConnection();
-        if (xiaozhi && xiaozhi.isConnected()) {
-          console.log('Service updated and restarted, reconnecting to Xiaozhi to refresh tools');
-          await xiaozhi.reconnect().catch(err => 
-            console.error('Failed to reconnect Xiaozhi:', err)
-          );
-        }
+        // Tool-change notifications handled automatically by
+        // registry SERVICE_STOPPED + SERVICE_STARTED events
+        // → mcp-agent.scheduleToolChangeCheck() (debounced)
       }
     }
 

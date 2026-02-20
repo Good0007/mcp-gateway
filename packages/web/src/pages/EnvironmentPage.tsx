@@ -532,7 +532,7 @@ export function EnvironmentPage() {
       eventSource.close();
     });
 
-    eventSource.onerror = (err) => {
+    eventSource.onerror = () => {
       // Handle connection error (likely closed)
       if (eventSource.readyState !== EventSource.CLOSED) {
          setLogModal(prev => ({
