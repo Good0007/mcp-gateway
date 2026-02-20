@@ -117,7 +117,7 @@ buildx-load-amd64:
 	@docker buildx use mcp-builder
 	docker buildx build \
 		--platform linux/amd64 \
-		--tag mcp-agent:latest-amd64 \
+		--tag mcp-gateway:latest-amd64 \
 		--load \
 		-f Dockerfile \
 		.
@@ -133,7 +133,7 @@ buildx-load-arm64:
 	@docker buildx use mcp-builder
 	docker buildx build \
 		--platform linux/arm64 \
-		--tag mcp-agent:latest-arm64 \
+		--tag mcp-gateway:latest-arm64 \
 		--load \
 		-f Dockerfile \
 		.
@@ -156,19 +156,19 @@ logs:
 
 shell:
 	@echo "🐚 进入容器 shell..."
-	docker-compose exec mcp-agent sh
+	docker-compose exec mcp-gateway sh
 
 clean:
 	@echo "🧹 清理 Docker 资源..."
 	docker-compose down -v
-	docker rmi mcp-agent:latest || true
+	docker rmi mcp-gateway:latest || true
 	@echo "✅ 清理完成"
 
 test:
 	@echo "🧪 测试容器健康状态..."
-	@if docker ps | grep -q mcp-agent; then \
+	@if docker ps | grep -q mcp-gateway; then \
 		echo "✅ 容器正在运行"; \
-		docker exec mcp-agent node -e "require('http').get('http://localhost:3000/health', (r) => {console.log('健康检查:', r.statusCode === 200 ? '✅ 通过' : '❌ 失败');process.exit(r.statusCode === 200 ? 0 : 1)})"; \
+		docker exec mcp-gateway node -e "require('http').get('http://localhost:3000/health', (r) => {console.log('健康检查:', r.statusCode === 200 ? '✅ 通过' : '❌ 失败');process.exit(r.statusCode === 200 ? 0 : 1)})"; \
 	else \
 		echo "❌ 容器未运行"; \
 		exit 1; \
