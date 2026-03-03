@@ -3,13 +3,36 @@
  * Uses relative paths - proxied to API server in development, served together in production
  */
 
+function resolveBaseUrl(): string {
+  if (typeof window === 'undefined') return '';
+
+  // Electron production: apiPort passed via query param
+  const params = new URLSearchParams(window.location.search);
+  const apiPort = params.get('apiPort');
+  if (apiPort) {
+    return `http://localhost:${apiPort}`;
+  }
+
+  // Web dev / web prod: same origin, Vite proxy handles /api
+  return '';
+}
+
+/** Resolved API base URL, shared across all API modules */
+export const API_BASE_URL = resolveBaseUrl();
+
+/** Resolved /api prefix */
+export const API_BASE = `${API_BASE_URL}${import.meta.env.VITE_API_BASE || '/api'}`;
+
+const BASE_URL = API_BASE_URL;
+
 class ApiClient {
   private async request<T>(
     endpoint: string,
     options?: RequestInit
   ): Promise<T> {
     // Use relative path - Vite proxy will forward to API server
-    const url = endpoint;
+    // Or use absolute path if in Electron
+    const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`;
     
     try {
       const response = await fetch(url, {

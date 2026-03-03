@@ -30,6 +30,7 @@ import {
 import { ToolAggregator } from './tool-aggregator.js';
 import { ConnectionError } from '../types/errors.js';
 import { logger } from '../utils/logger.js';
+import { normalizeArgs } from '../utils/param-normalizer.js';
 
 // Version constant
 const MCP_GATEWAY_VERSION = '0.1.0';
@@ -383,39 +384,6 @@ export class XiaozhiConnection extends EventEmitter {
   /**
    * Handle call tool request
    */
-  /**
-   * Map parameter names from xiaozhi to MCP tool expectations
-   * Xiaozhi may use different parameter names than the actual tools expect
-   */
-  private mapToolParameters(toolName: string, args: Record<string, unknown>): Record<string, unknown> {
-    // Parameter mapping table: xiaozhi name -> tool name
-    const parameterMappings: Record<string, Record<string, string>> = {
-      search_files: {
-        keyword: 'pattern',  // xiaozhi sends 'keyword', tool expects 'pattern'
-      },
-      control: {
-        device_id: 'entity_id',  // xiaozhi sends 'device_id', tool expects 'entity_id'
-        action: 'command',       // xiaozhi sends 'action', tool expects 'command'
-      },
-      // Add more tool-specific mappings here if needed
-    };
-
-    const mapping = parameterMappings[toolName];
-    if (!mapping) {
-      return args; // No mapping needed for this tool
-    }
-
-    const mappedArgs = { ...args };
-    for (const [xiaozhiName, toolName] of Object.entries(mapping)) {
-      if (xiaozhiName in mappedArgs) {
-        mappedArgs[toolName] = mappedArgs[xiaozhiName];
-        delete mappedArgs[xiaozhiName];
-      }
-    }
-
-    return mappedArgs;
-  }
-
   private async handleCallTool(request: JSONRPCRequest): Promise<void> {
     try {
       const params = (request.params as unknown) as CallToolParams;
@@ -425,17 +393,22 @@ export class XiaozhiConnection extends EventEmitter {
         originalArgs: params.arguments 
       });
       
-      // Map parameter names from xiaozhi to tool expectations
-      const mappedArgs = this.mapToolParameters(params.name, params.arguments || {});
-      
-      logger.info('Mapped tool parameters', {
-        tool: params.name,
-        mappedArgs
-      });
+      // Resolve schema and normalise parameter names
+      const tool = await this.toolAggregator.findTool(params.name);
+      const schema = tool?.parameters ?? {};
+      const { args: normalizedArgs, remapped } = normalizeArgs(
+        params.name,
+        params.arguments || {},
+        schema,
+      );
+
+      if (Object.keys(remapped).length > 0) {
+        logger.info('Normalised tool parameters', { tool: params.name, remapped });
+      }
       
       const result = await this.toolAggregator.callTool({
         name: params.name,
-        arguments: mappedArgs,
+        arguments: normalizedArgs,
       });
 
       const callResult: CallToolResult = {

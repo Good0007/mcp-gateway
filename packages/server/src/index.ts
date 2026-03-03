@@ -51,4 +51,10 @@ serve({
   console.log('   GET    /mcp/sse          - Legacy SSE transport');
   console.log('   DELETE /mcp/sse          - Close session');
   console.log('   GET    /mcp/status       - Proxy status');
+  
+  // Notify parent process (Electron) if running as a child process
+  if (process.send) {
+    process.send({ type: 'server-started', port: info.port });
+  }
 });
+

@@ -6,27 +6,26 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { MCPAgent } from '@mcp-gateway/core';
-import { existsSync } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Default config directory (can be overridden by env var)
-// MCPAgent will look for web-config.json in this directory
 let configDir = process.env.MCP_CONFIG_DIR || path.resolve(__dirname, '../../../config');
 
-// Verify config directory exists, try alternative paths if not
+// Ensure config directory exists — create it if needed
 if (!existsSync(configDir)) {
-  console.warn(`⚠️  Config directory not found: ${configDir}`);
-  
-  // Try workspace root config directory
-  const altConfigDir = path.resolve(process.cwd(), 'config');
-  if (existsSync(altConfigDir)) {
-    console.log(`✅ Using alternative config directory: ${altConfigDir}`);
-    configDir = altConfigDir;
-  } else {
-    // Create default config directory in workspace root
-    configDir = path.resolve(process.cwd(), 'config');
-    console.log(`📁 Will create config directory: ${configDir}`);
+  try {
+    mkdirSync(configDir, { recursive: true });
+    console.log(`📁 Created config directory: ${configDir}`);
+  } catch (err) {
+    console.warn(`⚠️  Cannot create config directory: ${configDir}`, err);
+    // Last resort: fall back to cwd/config
+    const altConfigDir = path.resolve(process.cwd(), 'config');
+    if (existsSync(altConfigDir)) {
+      console.log(`✅ Using alternative config directory: ${altConfigDir}`);
+      configDir = altConfigDir;
+    }
   }
 }
 

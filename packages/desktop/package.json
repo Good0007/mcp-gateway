@@ -3,13 +3,78 @@
   "version": "0.1.0",
   "private": true,
   "description": "Mcp Gateway Desktop (Electron)",
-  "type": "module",
+  "author": {
+    "name": "Mcp Gateway Team",
+    "email": "support@mcp-gateway.com"
+  },
+  "type": "commonjs",
+  "main": "dist-electron/main/main.js",
   "scripts": {
-    "dev": "echo 'TODO: electron dev'",
-    "build": "echo 'TODO: electron build'"
+    "dev": "concurrently -n \"web,server,electron\" -c \"blue,green,yellow\" \"cd ../web && bun run dev\" \"cd ../server && bun run dev\" \"wait-on tcp:5174 && vite\"",
+    "build": "bun run build:deps && tsc && vite build && rm -rf dist && cp -r ../web/dist dist && electron-builder",
+    "build:deps": "concurrently \"cd ../web && bun run build\" \"cd ../server && bun run build:bundle\"",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@mcp-gateway/web": "workspace:*",
     "@mcp-gateway/server": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "concurrently": "^9.2.1",
+    "electron": "^40.6.0",
+    "electron-builder": "^26.8.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "wait-on": "^9.0.4"
+  },
+  "build": {
+    "appId": "com.mcp-gateway.desktop",
+    "productName": "Mcp Gateway",
+    "icon": "build/icon.png",
+    "directories": {
+      "output": "release-electron"
+    },
+    "files": [
+      "dist-electron/**/*",
+      "dist/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../server/dist/server-bundle.js",
+        "to": "server/index.js"
+      },
+      {
+        "from": "assets/server-package.json",
+        "to": "server/package.json"
+      }
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "artifactName": "${productName}-${version}-Installer.${ext}",
+      "identity": null
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "${productName}-${version}-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": true
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "artifactName": "${productName}-${version}.${ext}"
+    }
   }
 }

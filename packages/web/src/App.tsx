@@ -17,8 +17,10 @@ function App() {
   const [currentPage, setCurrentPage] = useState('market');
   
   // Authentication
-  const { data: authStatus, isLoading: authLoading } = useAuthStatus();
+  const { data: authStatus, isLoading: authLoading, error: authError } = useAuthStatus();
   const loginMutation = useLogin();
+
+  console.log('App Render:', { currentPage, authStatus, authLoading, authError });
 
   // Handle login
   const handleLogin = async (username: string, password: string): Promise<boolean> => {
@@ -33,6 +35,7 @@ function App() {
 
   // Show loading spinner while checking auth status
   if (authLoading) {
+    console.log('App: Loading auth status...');
     return (
       <>
         <Toaster 
@@ -49,6 +52,24 @@ function App() {
           </div>
         </div>
       </>
+    );
+  }
+
+  if (authError) {
+    console.error('App: Auth error:', authError);
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-red-50 dark:bg-red-900/10 text-red-500">
+        <div className="text-center p-4">
+          <h3 className="text-lg font-bold mb-2">初始化失败</h3>
+          <p>{(authError as Error).message}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            重试
+          </button>
+        </div>
+      </div>
     );
   }
 

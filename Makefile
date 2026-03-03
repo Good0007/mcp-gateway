@@ -183,6 +183,13 @@ build-local:
 	@echo "🏗️  本地完整构建..."
 	bun run build:full
 
+build-desktop:
+	@echo "🏗️  构建桌面应用..."
+	bun run build:desktop
+	@echo "✅ 桌面应用构建完成"
+
+
+
 # 组合命令
 rebuild: clean build up
 	@echo "✅ 重新构建并启动完成"
