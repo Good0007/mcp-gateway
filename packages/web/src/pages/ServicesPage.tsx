@@ -146,7 +146,7 @@ function StartupLogsModal({
             {status === 'starting' && (
               <div className="flex items-center gap-2 text-slate-500 mt-2">
                 <Loader className="w-3 h-3 animate-spin" />
-                <span>Processing...</span>
+                <span>{t('services.modal.startup_logs_processing')}</span>
               </div>
             )}
             <div ref={logsEndRef} />
@@ -155,7 +155,7 @@ function StartupLogsModal({
         <div className="p-3 bg-slate-900 border-t border-slate-800 flex justify-end gap-2">
           {status === 'error' && (
             <span className="text-xs text-red-400 flex items-center mr-auto">
-              Startup failed. Check logs above.
+              {t('services.modal.startup_logs_failed')}
             </span>
           )}
           <Button 

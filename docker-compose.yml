@@ -18,11 +18,11 @@ services:
       - MCP_GATEWAY_PASSWORD=admin123     # 登录密码
       # 如果需要，可以通过环境变量传入配置
       # - MCP_SERVER_TOKEN=${MCP_SERVER_TOKEN}
-    volumes:
+    #volumes:
       # 持久化配置文件
-      - ./data/config:/app/config
+      #- ./data/config:/app/config
       # 持久化日志（如果需要）
-      - ./data/logs:/app/logs
+      #- ./data/logs:/app/logs
     networks:
       - mcp-network
     healthcheck:

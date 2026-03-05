@@ -1,9 +1,11 @@
 # Mcp Gateway
 
-一个强大的 MCP (Model Context Protocol) 网关服务，用于聚合多个 MCP 服务并通过统一接口管理。支持 stdio、SSE、HTTP、Embedded 四种服务类型，提供 Web 管理界面和环境检测功能。它可以作为**小智 (XiaoZhi)** 的工具提供者，也可以作为 **Trae/VSCode** 等 MCP 客户端的聚合服务端。
+一个强大的 MCP (Model Context Protocol) 网关服务，用于聚合多个 MCP 服务并通过统一接口管理。支持 stdio、SSE、HTTP 服务类型，提供 Web 管理界面和环境检测功能。它可以作为**小智 (XiaoZhi)** 的工具提供者，也可以作为 **Trae/VSCode** 等 MCP 客户端的聚合服务端。
 
 [![Docker](https://img.shields.io/badge/Docker-Hub-blue?logo=docker)](https://hub.docker.com/r/kangkang223/mcp-gateway)
 [![License](https://img.shields.io/badge/License-Custom-yellow.svg)](LICENSE)
+
+![Home](docs/home.png)
 
 ## ✨ 核心特性
 

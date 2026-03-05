@@ -116,6 +116,8 @@ RUN mkdir -p /app/config /app/data /app/logs
 EXPOSE 3000
 
 # 设置环境变量
+ENV UV_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+ENV NPM_CONFIG_REGISTRY=https://registry.npmmirror.com
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
