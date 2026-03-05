@@ -9,6 +9,8 @@ yarn-error.log*
 # yarn.lock          # Not using yarn
 
 # Build output
+dist-electron/
+release-electron/
 dist/
 build/
 *.tsbuildinfo

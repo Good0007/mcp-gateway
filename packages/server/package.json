@@ -9,6 +9,7 @@
     "dev": "tsx watch src/index.ts",
     "dev:full": "concurrently -n \"server,web\" -c \"blue,green\" \"bun run dev\" \"cd ../web && bun run dev\"",
     "build": "tsc",
+    "build:bundle": "esbuild src/index.ts --bundle --platform=node --target=node18 --format=esm --outfile=dist/server-bundle.js --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\" --external:fsevents --external:bufferutil --external:utf-8-validate",
     "postbuild": "mkdir -p public && cp -r ../web/dist/* public/ 2>/dev/null || true",
     "start": "NODE_ENV=production node dist/index.js",
     "clean": "rm -rf dist public",
@@ -25,6 +26,7 @@
   "devDependencies": {
     "@types/node": "^22.10.5",
     "concurrently": "^9.2.1",
+    "esbuild": "^0.27.3",
     "tsx": "^4.19.2"
   }
 }

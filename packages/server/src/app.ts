@@ -30,7 +30,17 @@ const publicDir = path.resolve(__dirname, '../public');
 const app = new Hono();
 
 // Middleware
-app.use('*', logger());
+// 静默 /api/status 和 /api/tools 的日志，其他接口正常日志
+import type { MiddlewareHandler } from 'hono';
+const silentApiLogger: MiddlewareHandler = (c, next) => {
+  const path = c.req.path;
+  if (path.startsWith('/api/status') || path.startsWith('/api/tools')) {
+    // 跳过日志
+    return next();
+  }
+  return logger()(c, next);
+};
+app.use('*', silentApiLogger);
 app.use('*', cors({
   origin: (origin) => origin || '*',
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],

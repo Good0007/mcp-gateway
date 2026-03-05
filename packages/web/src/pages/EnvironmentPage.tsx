@@ -2,6 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
+import { API_BASE } from '@/lib/api';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -420,7 +421,7 @@ export function EnvironmentPage() {
     setChecking(true);
     
     try {
-      const response = await fetch('/api/environment/check');
+      const response = await fetch(`${API_BASE}/environment/check`);
       const data = await response.json();
       
       // 如果后端返回了 OS 信息，使用它
@@ -585,7 +586,7 @@ export function EnvironmentPage() {
     });
 
     try {
-      const response = await fetch('/api/environment/uninstall', {
+      const response = await fetch(`${API_BASE}/environment/uninstall`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

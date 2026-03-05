@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { API_BASE, API_BASE_URL } from '@/lib/api';
+import { agentApi } from '@/lib/api-endpoints';
 import {
   Dialog,
   DialogContent,
@@ -44,6 +46,7 @@ import {
   EyeOff,
   Box,
   Search,
+  Square,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from '@/lib/toast';
@@ -107,7 +110,7 @@ export function ConnectionPage() {
     try {
       await updateXiaozhiMutation.mutateAsync({ enabledServices: enabled });
       // Trigger reconnection
-      await fetch('/api/status/reconnect', { method: 'POST' });
+      await fetch(`${API_BASE}/status/reconnect`, { method: 'POST' });
       toast.success(t('connection.toast.update_success'));
     } catch (error) {
       toast.error(t('connection.toast.update_fail'));
@@ -162,9 +165,31 @@ export function ConnectionPage() {
 
   const handleSwitchEndpoint = async (id: string) => {
     setIsDropdownOpen(false);
+    // 已经是当前端点，无需切换
+    if (id === selectedEndpointId) return;
     try {
       await selectEndpointMutation.mutateAsync(id);
       toast.success(t('connection.toast.switch_success'));
+      refetch();
+    } catch (error) {
+      toast.error((error instanceof Error ? error.message : String(error)) || t('connection.toast.switch_fail'));
+    }
+  };
+
+  const handleReconnect = async () => {
+    try {
+      await agentApi.reconnect();
+      toast.success(t('connection.toast.reconnecting'));
+      setTimeout(() => refetch(), 1500);
+    } catch (error) {
+      toast.error((error instanceof Error ? error.message : String(error)) || t('connection.toast.switch_fail'));
+    }
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await agentApi.disconnect();
+      toast.success(t('connection.toast.disconnected'));
       refetch();
     } catch (error) {
       toast.error((error instanceof Error ? error.message : String(error)) || t('connection.toast.switch_fail'));
@@ -175,7 +200,7 @@ export function ConnectionPage() {
   const fetchProxyStatus = async () => {
     setProxyLoading(true);
     try {
-      const response = await fetch('/mcp/status');
+      const response = await fetch(`${API_BASE_URL}/mcp/status`);
       if (response.ok) {
         const data = await response.json();
         setProxyStatus(data);
@@ -306,12 +331,21 @@ export function ConnectionPage() {
                     
                     <Button
                       variant="secondary"
-                      onClick={() => refetch()}
-                      disabled={isLoading}
+                      onClick={isConnected ? handleDisconnect : handleReconnect}
+                      disabled={isLoading || selectEndpointMutation.isPending}
                       className="gap-2"
                     >
-                      <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                      {t('connection.endpoint.switch')}
+                      {isConnected ? (
+                        <>
+                          <Square className="w-3 h-3" />
+                          {t('connection.status.disconnect')}
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                          {t('connection.endpoint.switch')}
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -657,7 +691,7 @@ export function ConnectionPage() {
                     servers: {
                       "mcp-agent": {
                         type: "sse",
-                        url: `${window.location.origin}/mcp/sse`,
+                        url: `${API_BASE_URL || window.location.origin}/mcp/sse`,
                         ...(proxyConfig?.token ? { headers: { Authorization: `Bearer ${proxyConfig?.token}` } } : {}),
                       },
                     },
@@ -670,7 +704,7 @@ export function ConnectionPage() {
                         servers: {
                           "mcp-agent": {
                             type: "sse",
-                            url: `${window.location.origin}/mcp/sse`,
+                            url: `${API_BASE_URL || window.location.origin}/mcp/sse`,
                             ...(proxyConfig?.token ? { headers: { Authorization: `Bearer ${proxyConfig?.token}` } } : {}),
                           },
                         },
@@ -723,7 +757,7 @@ export function ConnectionPage() {
                   <code>{JSON.stringify({
                     mcpServers: {
                       "mcp-agent": {
-                        url: `${window.location.origin}/mcp/sse`,
+                        url: `${API_BASE_URL || window.location.origin}/mcp/sse`,
                         ...(proxyConfig?.token ? { headers: { Authorization: `Bearer ${proxyConfig?.token}` } } : {}),
                       },
                     },
@@ -735,7 +769,7 @@ export function ConnectionPage() {
                       const config = {
                         mcpServers: {
                           "mcp-agent": {
-                            url: `${window.location.origin}/mcp/sse`,
+                            url: `${API_BASE_URL || window.location.origin}/mcp/sse`,
                             ...(proxyConfig?.token ? { headers: { Authorization: `Bearer ${proxyConfig?.token}` } } : {}),
                           },
                         },

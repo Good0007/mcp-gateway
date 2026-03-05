@@ -142,11 +142,72 @@ export class MCPAgent extends EventEmitter {
       this.scheduleToolChangeCheck();
     });
 
+    // ── Endpoint removed ──────────────────────────────────────────
+    // When the active endpoint is deleted, tear down the connection.
+    this.webConfigManager.on(WebConfigEvent.ENDPOINT_REMOVED, (_endpoint: unknown, wasActive: boolean) => {
+      if (wasActive && this.connection) {
+        logger.info('Active endpoint removed, disconnecting');
+        void this.disconnectXiaozhi();
+      }
+    });
+
+    // ── Endpoint switch ───────────────────────────────────────────
+    // When the user selects a different endpoint, disconnect from the
+    // current xiaozhi URL and establish a fresh connection to the new one.
+    this.webConfigManager.on(WebConfigEvent.ENDPOINT_CHANGED, (endpoint: { url: string; name: string }) => {
+      logger.info('Endpoint changed, switching connection', { endpoint: endpoint.name });
+      void this.switchToEndpoint(endpoint).catch(err =>
+        logger.error('Failed to switch endpoint', { error: err })
+      );
+    });
+
     // ── Errors ────────────────────────────────────────────────────
     this.webConfigManager.on(WebConfigEvent.ERROR, (error: Error) => {
       logger.error('Web config error', { error });
       this.emit(AgentEvent.ERROR, error);
     });
+  }
+
+  /**
+   * Switch to a new xiaozhi endpoint.
+   * Tears down the existing connection (if any) and creates a new one
+   * pointing at the given URL.
+   */
+  private async switchToEndpoint(endpoint: { url: string; name: string }): Promise<void> {
+    if (!this.isRunning) return;
+
+    const prefs = this.webConfigManager.getConfig()?.preferences ?? {};
+
+    // Disconnect existing connection cleanly
+    if (this.connection) {
+      await this.connection.disconnect();
+      this.connection = null;
+    }
+
+    // Create a new connection with the updated URL
+    this.connection = new XiaozhiConnection(
+      {
+        endpoint: endpoint.url,
+        reconnectInterval: prefs.reconnectInterval || 5000,
+        maxReconnectAttempts: prefs.maxReconnectAttempts || 10,
+      },
+      this.xiaozhiAggregator
+    );
+
+    this.connection.on(ConnectionEvent.CONNECTED, () => {
+      logger.info('Connected to new endpoint, agent ready', { endpoint: endpoint.name });
+      this.emit(AgentEvent.READY);
+    });
+    this.connection.on(ConnectionEvent.DISCONNECTED, () => {
+      logger.warn('Disconnected from xiaozhi');
+    });
+    this.connection.on(ConnectionEvent.ERROR, (error: Error) => {
+      logger.error('Connection error', { error });
+      this.emit(AgentEvent.ERROR, error);
+    });
+
+    await this.connection.connect();
+    logger.info('Switched to new endpoint', { endpoint: endpoint.name });
   }
 
   // ================================================================
@@ -320,15 +381,47 @@ export class MCPAgent extends EventEmitter {
   }
 
   /**
-   * Reconnect to xiaozhi
+   * Disconnect from xiaozhi without reconnecting.
+   * Marks close as manual so auto-reconnect is suppressed.
+   */
+  async disconnectXiaozhi(): Promise<void> {
+    if (!this.connection) {
+      logger.info('disconnectXiaozhi: no active connection');
+      return;
+    }
+    logger.info('Manually disconnecting from xiaozhi');
+    await this.connection.disconnect();
+    this.connection = null;
+  }
+
+  /**
+   * Reconnect to xiaozhi.
+   * Works in all cases:
+   *  - Already connected → full reconnect (reset init state, re-handshake)
+   *  - Connection exists but disconnected → reconnect
+   *  - No connection at all (started in limited mode) → create and connect
    */
   async reconnect(): Promise<void> {
-    if (this.connection && this.connection.isConnected()) {
+    if (!this.isRunning) {
+      logger.warn('Cannot reconnect: agent is not running');
+      return;
+    }
+
+    if (this.connection) {
       logger.info('Manual reconnection requested');
       await this.connection.reconnect();
-    } else {
-      logger.warn('Cannot reconnect: not connected to xiaozhi');
+      return;
     }
+
+    // Limited mode: no connection object yet — try to create one now
+    const currentEndpoint = this.webConfigManager.getCurrentEndpoint();
+    if (!currentEndpoint) {
+      logger.warn('Cannot reconnect: no endpoint configured');
+      return;
+    }
+
+    logger.info('Creating connection from limited mode', { endpoint: currentEndpoint.name });
+    await this.switchToEndpoint(currentEndpoint);
   }
 
   /**

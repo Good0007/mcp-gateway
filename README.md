@@ -1,9 +1,11 @@
 # Mcp Gateway
 
-一个强大的 MCP (Model Context Protocol) 网关服务，用于聚合多个 MCP 服务并通过统一接口管理。支持 stdio、SSE、HTTP、Embedded 四种服务类型，提供 Web 管理界面和环境检测功能。它可以作为**小智 (XiaoZhi)** 的工具提供者，也可以作为 **Trae/VSCode** 等 MCP 客户端的聚合服务端。
+一个强大的 MCP (Model Context Protocol) 网关服务，用于聚合多个 MCP 服务并通过统一接口管理。支持 stdio、SSE、HTTP 服务类型，提供 Web 管理界面和环境检测功能。它可以作为**小智 (XiaoZhi)** 的工具提供者，也可以作为 **Trae/VSCode** 等 MCP 客户端的聚合服务端。
 
 [![Docker](https://img.shields.io/badge/Docker-Hub-blue?logo=docker)](https://hub.docker.com/r/kangkang223/mcp-gateway)
 [![License](https://img.shields.io/badge/License-Custom-yellow.svg)](LICENSE)
+
+![Home](docs/home.png)
 
 ## ✨ 核心特性
 
@@ -95,7 +97,7 @@ docker-compose up -d
 # 或使用 Docker 命令
 docker run -d -p 3000:3000 kangkang223/mcp-gateway:latest
 
-# 访问 Web 界面
+# 访问 Web 界面 ( 默认账户 admin/admin123 )
 open http://localhost:3000
 ```
 
@@ -108,7 +110,7 @@ bun install
 # 启动开发环境（API Server + Web 界面）
 bun run dev
 
-# 访问 Web 界面
+# 访问 Web 界面 ( 默认账户 admin/admin123 )
 open http://localhost:5174
 ```
 
@@ -223,7 +225,7 @@ MCP_GATEWAY_PASSWORD=your_secure_password
 
 - [Docker 部署指南](./docs/DOCKER.md) - 详细的 Docker 部署说明
 - [开发者指南](./docs/DEVELOPMENT.md) - 开发环境搭建与调试
-- [架构设计](./ARCHITECTURE.md) - 系统架构说明
+- [架构设计](./docs/ARCHITECTURE.md) - 系统架构说明
 
 ## 🛠️ 常用命令
 

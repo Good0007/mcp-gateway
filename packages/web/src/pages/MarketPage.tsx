@@ -125,11 +125,12 @@ export function MarketPage() {
       const initialArgs: Record<string, string> = {};
       
       configs.forEach(config => {
+        const ck = `${config.serverKey}::${config.config.command}`;
         if (config.config.env) {
-          initialEnvs[config.serverKey] = { ...config.config.env };
+          initialEnvs[ck] = { ...config.config.env };
         }
         // 将 args 数组转换为字符串
-        initialArgs[config.serverKey] = config.config.args.join(' ');
+        initialArgs[ck] = config.config.args.join(' ');
       });
       
       setEnvValues(initialEnvs);
@@ -139,21 +140,21 @@ export function MarketPage() {
   }, [detailData]);
 
   // 处理环境变量变更
-  const handleEnvChange = (serverKey: string, envKey: string, value: string) => {
+  const handleEnvChange = (configKey: string, envKey: string, value: string) => {
     setEnvValues(prev => ({
       ...prev,
-      [serverKey]: {
-        ...prev[serverKey],
+      [configKey]: {
+        ...prev[configKey],
         [envKey]: value
       }
     }));
   };
 
   // 处理 Args 变更
-  const handleArgsChange = (serverKey: string, value: string) => {
+  const handleArgsChange = (configKey: string, value: string) => {
     setArgsValues(prev => ({
       ...prev,
-      [serverKey]: value
+      [configKey]: value
     }));
   };
 
@@ -251,7 +252,8 @@ export function MarketPage() {
     if (!detailData?.detail) return;
 
     // 优先使用用户输入的环境变量
-    const userEnv = envValues[config.serverKey] || config.config.env;
+    const ck = `${config.serverKey}::${config.config.command}`;
+    const userEnv = envValues[ck] || config.config.env;
     
     // 校验环境变量
     const hasUnsetPlaceholders = userEnv 
@@ -265,10 +267,10 @@ export function MarketPage() {
     
     // 处理 args：如果用户修改了，则使用修改后的值，否则使用默认值
     let userArgs = config.config.args;
-    if (argsValues[config.serverKey] !== undefined) {
+    if (argsValues[ck] !== undefined) {
       // 简单的按空格分割，支持基本的参数解析
       // TODO: 更复杂的参数解析（如带引号的参数）可能需要专门的库
-      userArgs = argsValues[config.serverKey].trim().split(/\s+/).filter(arg => arg.length > 0);
+      userArgs = argsValues[ck].trim().split(/\s+/).filter(arg => arg.length > 0);
     }
 
     const serviceConfig = convertToServiceConfig(
@@ -664,14 +666,15 @@ export function MarketPage() {
                           </h3>
                           {supportedConfigs.map((config, idx) => {
                             const isInstalled = isServiceInstalled(config.serverKey);
+                            const ck = `${config.serverKey}::${config.config.command}`;
                             // 检查当前配置的环境变量是否都已填好
                             // 优先从 state 获取，如果没有（尚未初始化），则使用默认配置
-                            const currentEnvs = envValues[config.serverKey] || config.config.env || {};
+                            const currentEnvs = envValues[ck] || config.config.env || {};
                             
                             // 检查是否所有值都有效（不含 <...> 占位符且不为空）
                             // 注意：有些配置可能没有 env，此时 config.config.env 为 undefined/null，认为有效
                             const hasValidEnv = !config.config.env || Object.entries(currentEnvs).every(([_, val]) => val && val.trim() !== '' && !val.includes('<'));
-                            const isShowingRaw = showRawJson[config.serverKey];
+                            const isShowingRaw = showRawJson[ck];
 
                             return (
                             <Card key={idx} className="bg-gray-50 dark:bg-slate-800 transition-all duration-200">
@@ -696,7 +699,7 @@ export function MarketPage() {
                                             ? 'bg-gray-100 dark:bg-slate-800 font-medium text-gray-900 dark:text-gray-100' 
                                             : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-800/50'
                                         }`}
-                                        onClick={() => setShowRawJson(prev => ({...prev, [config.serverKey]: false}))}
+                                        onClick={() => setShowRawJson(prev => ({...prev, [ck]: false}))}
                                       >
                                         {t('market.detail.config_btn')}
                                       </button>
@@ -707,7 +710,7 @@ export function MarketPage() {
                                             ? 'bg-gray-100 dark:bg-slate-800 font-medium text-gray-900 dark:text-gray-100' 
                                             : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-800/50'
                                         }`}
-                                        onClick={() => setShowRawJson(prev => ({...prev, [config.serverKey]: true}))}
+                                        onClick={() => setShowRawJson(prev => ({...prev, [ck]: true}))}
                                       >
                                         <Code className="w-3 h-3" />
                                         {t('market.detail.json_btn')}
@@ -775,8 +778,8 @@ export function MarketPage() {
                                       ) : (
                                         <input
                                           type="text"
-                                          value={argsValues[config.serverKey] ?? config.config.args.join(' ')}
-                                          onChange={(e) => handleArgsChange(config.serverKey, e.target.value)}
+                                          value={argsValues[ck] ?? config.config.args.join(' ')}
+                                          onChange={(e) => handleArgsChange(ck, e.target.value)}
                                           className="flex-1 h-8 px-2 text-xs font-mono rounded border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors"
                                           placeholder={t('market.detail.args_placeholder')}
                                         />
@@ -806,7 +809,7 @@ export function MarketPage() {
                                                     <input
                                                       type="text"
                                                       value={val}
-                                                      onChange={(e) => handleEnvChange(config.serverKey, envKey, e.target.value)}
+                                                      onChange={(e) => handleEnvChange(ck, envKey, e.target.value)}
                                                       className={`w-full h-8 px-2 text-xs font-mono rounded border bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors ${
                                                         isPlaceholder 
                                                           ? 'border-red-300 focus:border-red-500 bg-red-50/30' 

@@ -8,10 +8,7 @@ import type {
   XiaozhiEndpoint,
 } from '@mcp-gateway/shared';
 
-// 使用相对路径，支持生产环境和开发环境
-// 生产环境：前后端在同一端口，直接使用 /api
-// 开发环境：通过 Vite proxy 代理到后端端口
-const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+import { API_BASE } from '@/lib/api';
 
 /**
  * Get full web configuration

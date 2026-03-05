@@ -96,6 +96,10 @@ export function useSelectEndpoint() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['endpoints'] });
       queryClient.invalidateQueries({ queryKey: ['webConfig'] });
+      // 端点切换后后端会自动重连，延迟刷新连接状态
+      setTimeout(() => {
+        void queryClient.invalidateQueries({ queryKey: ['agent', 'status'] });
+      }, 2000);
     },
   });
 }

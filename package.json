@@ -12,6 +12,7 @@
     "build:server": "bun run --filter @mcp-gateway/server build",
     "build:cli": "bun run --filter @mcp-gateway/cli build",
     "build:web": "bun run --filter @mcp-gateway/web build",
+    "build:desktop": "bun run --filter @mcp-gateway/desktop build",
     "build:full": "bun run build:shared && bun run build:core && bun run build:web && bun run build:server && bun run copy:web",
     "copy:web": "mkdir -p packages/server/public && cp -r packages/web/dist/* packages/server/public/",
     "dev:web": "bun run --filter @mcp-gateway/web dev",
@@ -25,7 +26,8 @@
     "fix:core": "bun x eslint packages/core/src --fix",
     "fix:server": "bun x eslint packages/server/src --fix",
     "fix:web": "bun x eslint packages/web/src --fix",
-    "fix:cli": "bun x eslint packages/cli/src --fix"
+    "fix:cli": "bun x eslint packages/cli/src --fix",
+    "fix:desktop": "bun x eslint packages/desktop/*.{ts} --fix"
   },
   "keywords": [
     "mcp",

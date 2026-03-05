@@ -16,6 +16,8 @@ import { apiClient } from './api';
 export const agentApi = {
   // Agent Status
   getStatus: () => apiClient.get<AgentStatusResponse>('/api/status'),
+  reconnect: () => apiClient.post<{ success: boolean; message: string }>('/api/status/reconnect'),
+  disconnect: () => apiClient.post<{ success: boolean; message: string }>('/api/status/disconnect'),
 
   // Services
   getServices: () => apiClient.get<ServiceListResponse>('/api/services'),

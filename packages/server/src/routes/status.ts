@@ -59,6 +59,23 @@ app.get('/', async (c) => {
   }
 });
 
+// POST /api/status/disconnect - Disconnect from Xiaozhi without reconnecting
+app.post('/disconnect', async (c) => {
+  try {
+    if (!hasAgent()) {
+      return c.json({ error: 'Agent not initialized' }, 500);
+    }
+
+    const agent = await getAgent();
+    await agent.disconnectXiaozhi();
+
+    return c.json({ success: true, message: 'Disconnected' });
+  } catch (error: any) {
+    console.error('Disconnect route error:', error);
+    return c.json({ error: error.message || 'Failed to disconnect' }, 500);
+  }
+});
+
 // POST /api/status/reconnect - Force reconnection to Xiaozhi
 app.post('/reconnect', async (c) => {
   try {
