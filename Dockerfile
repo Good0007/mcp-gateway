@@ -65,7 +65,8 @@ COPY --from=builder /usr/local/bin/bunx /usr/local/bin/bunx
 RUN bun --version
 
 # 安装 uv (Python 包管理器，包含 uvx)
-RUN pip3 install --no-cache-dir uv --break-system-packages
+RUN pip3 install --no-cache-dir uv --break-system-packages \
+    -i https://mirrors.aliyun.com/pypi/simple/
 
 # 设置时区
 ENV TZ=Asia/Shanghai
